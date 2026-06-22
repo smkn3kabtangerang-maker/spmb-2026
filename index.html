@@ -782,7 +782,7 @@
       // Seed Nomor Pendaftaran
       const stmtNomor = db.prepare("INSERT OR IGNORE INTO nomor_pendaftaran (nama, nisn, nomor, sekolah) VALUES (?, ?, ?, ?)");
       stmtNomor.run(["Ahmad Fauzi", "0012345678", "PPDB-2026-0001", "SMPN 1 Tangerang"]);
-      stmtNomor.run(["Siti Rahmawati", "0023456789", "PPDB-2026-0002", "SMPN 2 Tangerang"]);
+      stmtNomor.run(["MUHAMMAD SYAHRIL SAPUTRA", "0101799575", "PPDB-2026-0002", "SMPN 2 Tangerang"]);
       stmtNomor.run(["Budi Pratama", "0034567890", "PPDB-2026-0003", "SMPN 3 Cikupa"]);
       stmtNomor.run(["Dian Saputra", "0045678901", "PPDB-2026-0004", "SMP Nurul Iman"]);
       stmtNomor.run(["Eka Lestari", "0056789012", "PPDB-2026-0005", "SMPN 5 Tangerang"]);
