@@ -1,0 +1,2382 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Virtual Talent Quest v3.0 - SMKN 3 Kab. Tangerang</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Phaser 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.87.0/dist/phaser.min.js"></script>
+  
+  <!-- SQL.js (WebAssembly SQLite in Browser) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/sql-wasm.js"></script>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      overflow: hidden;
+      user-select: none;
+      background-color: #87CEEB;
+    }
+    .font-bubble {
+      font-family: 'Fredoka', sans-serif;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.05);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.2);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0,0,0,0.3);
+    }
+    /* Roblox style button shadow animation */
+    .btn-roblox {
+      transition: all 0.15s ease;
+      box-shadow: 0 6px 0 #b35900;
+    }
+    .btn-roblox:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #b35900;
+    }
+    .btn-roblox-green {
+      box-shadow: 0 6px 0 #1e5a1e;
+    }
+    .btn-roblox-green:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #1e5a1e;
+    }
+    .btn-roblox-blue {
+      box-shadow: 0 6px 0 #104e7a;
+    }
+    .btn-roblox-blue:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #104e7a;
+    }
+    /* Shimmer effect for unlocking */
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .shimmer-glow {
+      background: linear-gradient(90deg, #ffd700 25%, #fff9be 50%, #ffd700 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite linear;
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen text-slate-800">
+
+  <!-- Root App Loader & UI Overlays -->
+  <div id="ui-container" class="absolute inset-0 z-10 pointer-events-none">
+    
+    <!-- SPLASH SCREEN / BOOT WITH SQLITE INITIALIZATION -->
+    <div id="screen-boot" class="absolute inset-0 bg-gradient-to-b from-[#1da1f2] to-[#005c99] flex flex-col items-center justify-center pointer-events-auto transition-all duration-500">
+      <div class="text-center p-6 max-w-md animate-bounce">
+        <div class="bg-white text-[#ff8000] text-6xl font-bubble p-4 rounded-3xl inline-block shadow-2xl border-4 border-black mb-4 transform -rotate-3">
+          VTQ <span class="text-black">3.0</span>
+        </div>
+        <h1 class="text-white text-3xl font-bubble drop-shadow-md mb-2">VIRTUAL TALENT QUEST</h1>
+        <p class="text-blue-100 text-sm tracking-wide uppercase font-semibold">SMKN 3 KABUPATEN TANGERANG</p>
+      </div>
+      <div class="w-64 bg-blue-900 rounded-full h-4 overflow-hidden border-2 border-white mt-8">
+        <div id="boot-progress" class="bg-yellow-400 h-full w-0 transition-all duration-300"></div>
+      </div>
+      <p id="boot-status" class="text-white text-xs mt-3 font-mono">Memuat virtual database engine...</p>
+    </div>
+
+    <!-- LOGIN SCREEN -->
+    <div id="screen-login" class="hidden absolute inset-0 bg-cover bg-center flex items-center justify-center pointer-events-auto p-4" style="background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=1000&auto=format&fit=crop');">
+      <div class="bg-white/95 backdrop-blur-sm p-8 rounded-3xl max-w-md w-full border-4 border-black shadow-2xl transform scale-95 transition-all relative">
+        <!-- DB Engine status badge -->
+        <span class="absolute -top-3 -right-3 bg-teal-500 text-white border-2 border-black font-bubble text-xs px-3 py-1 rounded-full shadow-md">
+          <i class="fa-solid fa-database mr-1"></i> SQLite Active
+        </span>
+        
+        <div class="text-center mb-6">
+          <span class="bg-yellow-400 text-black font-bubble text-xs px-3 py-1 rounded-full uppercase border border-black font-bold">PPDB 2026/2027</span>
+          <h2 class="text-3xl font-bubble text-slate-800 mt-2">Masuk Dunia Virtual</h2>
+          <p class="text-slate-500 text-sm">Gunakan Nama Lengkap & NISN Anda untuk memulai eksplorasi bakat</p>
+        </div>
+        
+        <form id="login-form" class="space-y-4">
+          <div>
+            <label class="block text-slate-700 text-sm font-bold mb-1">NAMA LENGKAP</label>
+            <div class="relative">
+              <span class="absolute left-3 top-3.5 text-slate-400"><i class="fa-solid fa-user"></i></span>
+              <input type="text" id="login-nama" required placeholder="Contoh: Ahmad Fauzi" class="w-full pl-10 pr-4 py-3 bg-slate-100 border-2 border-slate-300 rounded-xl focus:border-yellow-400 focus:outline-none font-semibold transition text-slate-800">
+            </div>
+          </div>
+          <div>
+            <label class="block text-slate-700 text-sm font-bold mb-1">NISN (10 Digit)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-3.5 text-slate-400"><i class="fa-solid fa-id-card"></i></span>
+              <input type="text" id="login-nisn" maxlength="10" required placeholder="Contoh: 0012345678" class="w-full pl-10 pr-4 py-3 bg-slate-100 border-2 border-slate-300 rounded-xl focus:border-yellow-400 focus:outline-none font-mono font-bold tracking-widest text-slate-800">
+            </div>
+            <p class="text-xs text-slate-400 mt-1">*Hanya angka terdaftar, tepat 10 digit.</p>
+          </div>
+
+          <div id="login-error" class="hidden bg-red-100 text-red-600 text-xs p-3 rounded-xl border border-red-200 font-semibold flex items-center gap-2">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span id="login-error-text">Nama atau NISN tidak cocok!</span>
+          </div>
+
+          <button type="submit" class="w-full bg-[#ff8000] text-white font-bubble text-xl py-3 rounded-2xl btn-roblox active:bg-[#e67300] cursor-pointer">
+            EKSPLORASI SEKARANG <i class="fa-solid fa-gamepad ml-2"></i>
+          </button>
+        </form>
+
+        <div class="mt-6 pt-4 border-t border-slate-200 text-center flex flex-col gap-2">
+          <p class="text-xs text-slate-400">Belum terdaftar? Anda bisa login dengan NISN default seed (misal: <b>0012345678</b> nama: <b>Ahmad Fauzi</b>).</p>
+          <button onclick="openAdminPanel()" class="text-xs text-teal-600 font-extrabold hover:underline pointer-events-auto cursor-pointer">
+            <i class="fa-solid fa-lock-open mr-1"></i> Buka Dashboard Admin & SQLite Console
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AVATAR SELECTION SCREEN -->
+    <div id="screen-avatar" class="hidden absolute inset-0 bg-gradient-to-br from-[#9ee2ff] to-[#42a8e8] flex flex-col justify-between pointer-events-auto p-4 md:p-8">
+      <div class="text-center pt-2">
+        <h2 class="text-3xl md:text-4xl font-bubble text-white drop-shadow-md">KUSTOMISASI AVATARMU</h2>
+        <p class="text-blue-900 font-semibold text-sm">Sesuaikan gaya blocky karakter virtual Anda!</p>
+      </div>
+
+      <div class="flex-1 flex flex-col md:flex-row items-center justify-center gap-8 my-4 max-w-5xl mx-auto w-full">
+        <!-- Live Avatar Canvas Preview -->
+        <div class="w-64 h-64 md:w-80 md:h-80 bg-white/30 backdrop-blur-md rounded-3xl border-4 border-white shadow-xl flex items-center justify-center relative overflow-hidden">
+          <canvas id="avatar-canvas" width="250" height="250" class="drop-shadow-lg"></canvas>
+          <div class="absolute bottom-3 right-3 bg-black/40 text-white px-2.5 py-1 rounded-full text-xs font-semibold">
+            <i class="fa-solid fa-arrows-spin animate-spin mr-1"></i> Preview 2D
+          </div>
+        </div>
+
+        <!-- Customization Controls -->
+        <div class="bg-white p-6 rounded-3xl border-4 border-black shadow-xl flex-1 w-full space-y-4">
+          <!-- Skin Tone Selection -->
+          <div>
+            <span class="block text-slate-700 text-xs font-extrabold tracking-wider mb-2">PILIH WARNA KULIT</span>
+            <div class="flex gap-3">
+              <button onclick="updateAvatar('skin', '#ffdbac')" class="w-10 h-10 rounded-xl border-2 border-black cursor-pointer shadow-md" style="background-color: #ffdbac;"></button>
+              <button onclick="updateAvatar('skin', '#f1c27d')" class="w-10 h-10 rounded-xl border-2 border-black cursor-pointer shadow-md" style="background-color: #f1c27d;"></button>
+              <button onclick="updateAvatar('skin', '#e0ac69')" class="w-10 h-10 rounded-xl border-2 border-black cursor-pointer shadow-md" style="background-color: #e0ac69;"></button>
+              <button onclick="updateAvatar('skin', '#c68642')" class="w-10 h-10 rounded-xl border-2 border-black cursor-pointer shadow-md" style="background-color: #c68642;"></button>
+              <button onclick="updateAvatar('skin', '#8d5524')" class="w-10 h-10 rounded-xl border-2 border-black cursor-pointer shadow-md" style="background-color: #8d5524;"></button>
+            </div>
+          </div>
+
+          <!-- Shirt Color Selection -->
+          <div>
+            <span class="block text-slate-700 text-xs font-extrabold tracking-wider mb-2">WARNA BAJU (ROBLOX STYLE)</span>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="updateAvatar('shirt', '#ef4444')" class="w-8 h-8 rounded-lg border border-black cursor-pointer" style="background-color: #ef4444;"></button>
+              <button onclick="updateAvatar('shirt', '#3b82f6')" class="w-8 h-8 rounded-lg border border-black cursor-pointer" style="background-color: #3b82f6;"></button>
+              <button onclick="updateAvatar('shirt', '#10b981')" class="w-8 h-8 rounded-lg border border-black cursor-pointer" style="background-color: #10b981;"></button>
+              <button onclick="updateAvatar('shirt', '#f59e0b')" class="w-8 h-8 rounded-lg border border-black cursor-pointer" style="background-color: #f59e0b;"></button>
+              <button onclick="updateAvatar('shirt', '#ec4899')" class="w-8 h-8 rounded-lg border border-black cursor-pointer" style="background-color: #ec4899;"></button>
+              <button onclick="updateAvatar('shirt', '#8b5cf6')" class="w-8 h-8 rounded-lg border border-black cursor-pointer" style="background-color: #8b5cf6;"></button>
+              <button onclick="updateAvatar('shirt', '#1f2937')" class="w-8 h-8 rounded-lg border border-black cursor-pointer" style="background-color: #1f2937;"></button>
+            </div>
+          </div>
+
+          <!-- Pants Color Selection -->
+          <div>
+            <span class="block text-slate-700 text-xs font-extrabold tracking-wider mb-2">WARNA CELANA</span>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="updateAvatar('pants', '#ef4444')" class="w-8 h-8 rounded-lg border border-black cursor-pointer" style="background-color: #ef4444;"></button>
+              <button onclick="updateAvatar('pants', '#3b82f6')" class="w-8 h-8 rounded-lg border border-black cursor-pointer" style="background-color: #3b82f6;"></button>
+              <button onclick="updateAvatar('pants', '#10b981')" class="w-8 h-8 rounded-lg border border-black cursor-pointer" style="background-color: #10b981;"></button>
+              <button onclick="updateAvatar('pants', '#1f2937')" class="w-8 h-8 rounded-lg border border-black cursor-pointer" style="background-color: #1f2937;"></button>
+              <button onclick="updateAvatar('pants', '#4b5563')" class="w-8 h-8 rounded-lg border border-black cursor-pointer" style="background-color: #4b5563;"></button>
+            </div>
+          </div>
+
+          <!-- Accessories Selection -->
+          <div>
+            <span class="block text-slate-700 text-xs font-extrabold tracking-wider mb-2">AKSESORIS KEPALA & TUBUH</span>
+            <div class="grid grid-cols-3 gap-2">
+              <button id="acc-topi" onclick="toggleAccessory('topi')" class="px-3 py-2 bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer">
+                🤠 Topi Koboi
+              </button>
+              <button id="acc-kacamata" onclick="toggleAccessory('kacamata')" class="px-3 py-2 bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer">
+                😎 Kacamata Hitam
+              </button>
+              <button id="acc-tas" onclick="toggleAccessory('tas')" class="px-3 py-2 bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer">
+                🎒 Tas Sekolah
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center pb-4">
+        <button onclick="saveAvatarAndEnterGame()" class="px-10 py-4 bg-[#00aa00] text-white font-bubble text-2xl rounded-2xl btn-roblox btn-roblox-green active:bg-[#008800] cursor-pointer">
+          MASUK KAMPUS SEKARANG <i class="fa-solid fa-arrow-right ml-2"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- GAME OVERLAYS / HUD (Heads-Up Display) -->
+    <div id="game-hud" class="hidden absolute inset-0 pointer-events-none flex flex-col justify-between p-4">
+      <!-- HUD Top Header -->
+      <div class="flex items-start justify-between w-full">
+        <!-- Player Info & Progress Card -->
+        <div class="bg-white/95 backdrop-blur-sm border-3 border-black p-3 rounded-2xl flex items-center gap-3 shadow-lg pointer-events-auto max-w-sm">
+          <div id="hud-avatar-icon" class="w-12 h-12 bg-blue-100 border border-black rounded-xl overflow-hidden flex items-center justify-center relative">
+            <canvas id="hud-avatar-canvas" width="48" height="48"></canvas>
+          </div>
+          <div>
+            <h4 id="hud-player-name" class="font-bubble text-slate-800 leading-tight">Nama Peserta</h4>
+            <div class="flex items-center gap-1.5 mt-0.5">
+              <span id="hud-player-nisn" class="bg-slate-200 text-slate-700 text-[10px] font-bold px-1.5 py-0.5 rounded font-mono font-extrabold">NISN: -</span>
+              <span id="hud-player-no" class="bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5 rounded font-mono">No: -</span>
+            </div>
+            <!-- Lab Quest completion circles -->
+            <div class="flex gap-1.5 mt-2">
+              <span id="badge-tkj" class="w-6 h-6 rounded-full bg-slate-200 border border-slate-400 text-[10px] font-bold flex items-center justify-center text-slate-500" title="TKJ">💻</span>
+              <span id="badge-tkr" class="w-6 h-6 rounded-full bg-slate-200 border border-slate-400 text-[10px] font-bold flex items-center justify-center text-slate-500" title="TKR">🔧</span>
+              <span id="badge-titl" class="w-6 h-6 rounded-full bg-slate-200 border border-slate-400 text-[10px] font-bold flex items-center justify-center text-slate-500" title="TITL">⚡</span>
+              <span id="badge-tsm" class="w-6 h-6 rounded-full bg-slate-200 border border-slate-400 text-[10px] font-bold flex items-center justify-center text-slate-500" title="TSM">🏍️</span>
+              <span id="badge-mp" class="w-6 h-6 rounded-full bg-slate-200 border border-slate-400 text-[10px] font-bold flex items-center justify-center text-slate-500" title="MP">📋</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Buttons Dashboard -->
+        <div class="flex flex-col gap-2 pointer-events-auto">
+          <!-- Leaderboard Floating Button -->
+          <button onclick="openLeaderboard()" class="w-12 h-12 bg-yellow-400 hover:bg-yellow-500 border-2 border-black rounded-xl text-slate-900 shadow-md flex items-center justify-center text-xl cursor-pointer">
+            <i class="fa-solid fa-trophy"></i>
+          </button>
+          
+          <!-- Direct Admin View Mock Trigger -->
+          <button onclick="openAdminPanel()" class="w-12 h-12 bg-teal-500 hover:bg-teal-600 border-2 border-black rounded-xl text-white shadow-md flex items-center justify-center text-xl cursor-pointer" title="Halaman Guru/Admin">
+            <i class="fa-solid fa-user-tie"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Toast Achievement Popup -->
+      <div id="achievement-toast" class="opacity-0 transition-all duration-500 transform translate-y-10 absolute bottom-24 left-1/2 -translate-x-1/2 bg-yellow-400 text-slate-900 border-4 border-black px-6 py-3 rounded-2xl flex items-center gap-3 shadow-2xl pointer-events-auto shimmer-glow">
+        <div class="text-3xl"><i class="fa-solid fa-medal animate-bounce"></i></div>
+        <div>
+          <h5 class="font-bubble text-sm leading-tight">PRESTASI DIBUKA!</h5>
+          <p id="achievement-text" class="text-xs font-bold">Menyelesaikan Lab Pertama</p>
+        </div>
+      </div>
+
+      <!-- HUD Bottom: Virtual D-Pad for Touch Screen and Finalize Button -->
+      <div class="flex items-end justify-between w-full">
+        <!-- Touch Controller / Mobile D-Pad -->
+        <div id="hud-dpad" class="bg-black/20 p-2 rounded-full flex flex-col items-center gap-1 shadow-inner border border-white/10 backdrop-blur-sm pointer-events-auto">
+          <div class="flex gap-1">
+            <button id="btn-dpad-up" class="w-10 h-10 bg-white/70 hover:bg-white active:scale-90 border border-black/20 rounded-xl flex items-center justify-center cursor-pointer text-slate-800"><i class="fa-solid fa-caret-up"></i></button>
+          </div>
+          <div class="flex gap-1">
+            <button id="btn-dpad-left" class="w-10 h-10 bg-white/70 hover:bg-white active:scale-90 border border-black/20 rounded-xl flex items-center justify-center cursor-pointer text-slate-800"><i class="fa-solid fa-caret-left"></i></button>
+            <button id="btn-dpad-down" class="w-10 h-10 bg-white/70 hover:bg-white active:scale-90 border border-black/20 rounded-xl flex items-center justify-center cursor-pointer text-slate-800"><i class="fa-solid fa-caret-down"></i></button>
+            <button id="btn-dpad-right" class="w-10 h-10 bg-white/70 hover:bg-white active:scale-90 border border-black/20 rounded-xl flex items-center justify-center cursor-pointer text-slate-800"><i class="fa-solid fa-caret-right"></i></button>
+          </div>
+        </div>
+
+        <!-- Submit Quest Button -->
+        <div class="pointer-events-auto">
+          <button id="btn-finalize" onclick="finalizeQuest()" class="hidden px-6 py-3.5 bg-gradient-to-r from-red-500 to-orange-500 text-white font-bubble text-lg rounded-2xl border-3 border-black shadow-lg animate-pulse hover:brightness-110 active:scale-95 cursor-pointer">
+            SELESAIKAN TES <i class="fa-solid fa-paper-plane ml-2"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DIALOG OVERLAY (GURU NPC TALK) -->
+    <div id="screen-dialog" class="hidden absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-6 pointer-events-auto flex justify-center items-end">
+      <div class="bg-white border-4 border-black rounded-3xl p-6 max-w-2xl w-full flex gap-4 shadow-2xl relative transform translate-y-4 transition-all duration-300">
+        <div id="dialog-npc-pic" class="w-20 h-20 bg-slate-100 border-2 border-black rounded-2xl overflow-hidden flex items-center justify-center text-4xl">
+          👨‍🏫
+        </div>
+        <div class="flex-1">
+          <h4 id="dialog-npc-name" class="font-bubble text-[#ff8000] text-lg">Nama Guru</h4>
+          <p id="dialog-npc-title" class="text-slate-400 text-xs font-bold leading-none mb-2">Kepala Lab TKJ</p>
+          <p id="dialog-text" class="text-slate-700 text-sm md:text-base leading-relaxed h-16 overflow-y-auto">Selamat datang di Lab TKJ! Apakah kamu siap membuktikan minat bakatmu di bidang Komputer dan Jaringan?</p>
+          
+          <div class="flex justify-end gap-3 mt-4">
+            <button onclick="closeDialog()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-xs border border-slate-300 hover:bg-slate-300 cursor-pointer">NANTI DULU</button>
+            <button id="btn-dialog-start" class="px-6 py-2.5 bg-blue-600 text-white font-bubble text-sm rounded-xl btn-roblox btn-roblox-blue active:bg-blue-700 cursor-pointer">MULAI TES JURUSAN <i class="fa-solid fa-circle-play ml-1"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUIZ SYSTEM OVERLAY -->
+    <div id="screen-quiz" class="hidden absolute inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto">
+      <div class="bg-white border-4 border-black rounded-3xl max-w-xl w-full p-6 shadow-2xl relative">
+        <div class="flex items-center justify-between mb-4 pb-2 border-b-2 border-slate-100">
+          <div class="flex items-center gap-2">
+            <span id="quiz-jurusan-icon" class="text-2xl">💻</span>
+            <h3 id="quiz-jurusan-title" class="font-bubble text-xl text-slate-800">Ujian Teori TKJ</h3>
+          </div>
+          <span id="quiz-progress-label" class="bg-slate-100 text-slate-600 font-bold px-3 py-1 rounded-full text-xs border border-slate-300 font-mono">Soal 1 / 3</span>
+        </div>
+
+        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-4 border border-slate-200">
+          <div id="quiz-timer-bar" class="bg-red-500 h-full w-full transition-all duration-1000 linear"></div>
+        </div>
+
+        <div class="min-h-[100px] mb-6 flex flex-col justify-center bg-slate-50 p-4 rounded-2xl border border-slate-200">
+          <p id="quiz-question-text" class="text-slate-700 font-bold text-base md:text-lg text-center leading-relaxed">Pertanyaan simulasi akan muncul di sini.</p>
+        </div>
+
+        <div id="quiz-options-grid" class="space-y-3">
+          <!-- Answer buttons injected dynamically -->
+        </div>
+
+        <div id="quiz-feedback" class="hidden absolute inset-0 bg-white/95 rounded-3xl flex flex-col items-center justify-center p-6 text-center z-20">
+          <div id="feedback-icon" class="text-7xl animate-bounce mb-2">🎉</div>
+          <h4 id="feedback-title" class="text-2xl font-bubble text-green-600">JAWABAN BENAR!</h4>
+          <p id="feedback-desc" class="text-slate-500 text-sm max-w-sm mt-1">Mengagumkan! Pengetahuan Anda di bidang ini sangat bagus.</p>
+          <button onclick="nextQuizStep()" class="mt-6 px-8 py-3 bg-[#ff8000] text-white font-bubble rounded-2xl btn-roblox active:bg-[#e67300] cursor-pointer">LANJUTKAN <i class="fa-solid fa-chevron-right ml-1"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MINI-GAME SYSTEM OVERLAY -->
+    <div id="screen-minigame" class="hidden absolute inset-0 bg-slate-900 flex flex-col items-center justify-center p-4 pointer-events-auto">
+      <div class="max-w-xl w-full bg-slate-800 border-4 border-black rounded-3xl p-6 shadow-2xl relative">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2 text-white">
+            <span id="game-icon" class="text-2xl">🔧</span>
+            <div>
+              <h3 id="game-title" class="font-bubble text-lg leading-none">Mini-Game: Engine Builder</h3>
+              <p class="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">Komponen Nilai Praktik (Bobot 40%)</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <span id="game-timer" class="bg-red-500 text-white font-mono font-bold px-3 py-1 rounded-full text-xs">Sisa Waktu: 30s</span>
+            <span id="game-score" class="bg-green-600 text-white font-bold px-3 py-1 rounded-full text-xs">Skor: 0</span>
+          </div>
+        </div>
+
+        <div class="bg-slate-700/60 p-3 rounded-2xl text-slate-200 text-xs text-center border border-slate-600 mb-4 font-semibold">
+          💡 <span id="game-instr">Tarik komponen ke port yang cocok!</span>
+        </div>
+
+        <div class="w-full bg-slate-950 rounded-2xl border-2 border-black aspect-[4/3] relative overflow-hidden flex items-center justify-center">
+          <canvas id="minigame-canvas" width="480" height="360" class="w-full h-full bg-slate-950"></canvas>
+        </div>
+
+        <div id="minigame-complete-popup" class="hidden absolute inset-0 bg-slate-900/95 rounded-3xl flex flex-col items-center justify-center p-6 text-center z-10">
+          <div class="text-6xl mb-2 animate-pulse">⚙️</div>
+          <h4 class="text-2xl font-bubble text-yellow-400">PRAKTIK SELESAI</h4>
+          <p id="minigame-complete-desc" class="text-slate-300 text-sm max-w-xs mt-1">Anda menyelesaikan tantangan praktik dengan performa luar biasa.</p>
+          <div class="bg-slate-800 border-2 border-black p-4 rounded-2xl my-4 inline-block">
+            <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Skor Diperoleh</p>
+            <p id="minigame-final-score-val" class="text-white text-3xl font-bubble mt-0.5">85 / 100</p>
+          </div>
+          <button onclick="finishMinigameSubmit()" class="px-8 py-3 bg-[#00aa00] text-white font-bubble rounded-2xl btn-roblox btn-roblox-green active:bg-[#008800] cursor-pointer">
+            SELESAIKAN LAB <i class="fa-solid fa-circle-check ml-1"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LAB COMPLETION MODAL -->
+    <div id="screen-lab-complete" class="hidden absolute inset-0 bg-black/80 flex items-center justify-center p-4 pointer-events-auto">
+      <div class="bg-white border-4 border-black rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl relative overflow-hidden">
+        <div id="lab-complete-badge-area" class="w-24 h-24 bg-yellow-100 rounded-full border-3 border-black flex items-center justify-center text-5xl mx-auto mb-4 drop-shadow-lg">
+          💻
+        </div>
+
+        <span class="bg-blue-100 text-blue-700 text-xs font-extrabold px-3 py-1 rounded-full border border-blue-300">LAB BERHASIL DISELESAIKAN</span>
+        <h3 id="lab-complete-title" class="text-2xl font-bubble text-slate-800 mt-2">LAB TKJ SELESAI!</h3>
+        <p class="text-slate-500 text-sm mt-1">Progres disimpan ke SQLite local database.</p>
+
+        <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 my-4 space-y-1">
+          <div class="flex justify-between text-xs font-bold text-slate-500">
+            <span>SKOR QUIZ (60%)</span>
+            <span id="lab-val-quiz">0</span>
+          </div>
+          <div class="flex justify-between text-xs font-bold text-slate-500">
+            <span>SKOR PRAKTIK (40%)</span>
+            <span id="lab-val-game">0</span>
+          </div>
+          <div class="border-t border-slate-200 my-2 pt-2 flex justify-between text-sm font-extrabold text-slate-800">
+            <span>TOTAL SKOR JURUSAN</span>
+            <span id="lab-val-total" class="text-blue-600 text-base">0</span>
+          </div>
+        </div>
+
+        <button onclick="dismissLabCompleteAndReturn()" class="w-full bg-[#00aa00] text-white font-bubble text-lg py-3 rounded-2xl btn-roblox btn-roblox-green active:bg-[#008800] cursor-pointer">
+          KEMBALI EKSPLORASI <i class="fa-solid fa-arrow-right ml-1"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- RESULT & RECOMMENDATION SCREEN -->
+    <div id="screen-result" class="hidden absolute inset-0 bg-gradient-to-b from-[#1a1c29] to-[#0d0e15] text-white flex flex-col justify-between pointer-events-auto p-4 md:p-8 overflow-y-auto">
+      <div class="text-center pt-2">
+        <h2 class="text-3xl md:text-5xl font-bubble text-yellow-400 drop-shadow-md animate-pulse">HASIL MINAT BAKAT JURUSAN</h2>
+        <p class="text-slate-300 font-bold text-xs uppercase tracking-widest mt-1">ANALISIS MULTI-VARIABEL SECARA REAL-TIME</p>
+      </div>
+
+      <div class="max-w-4xl mx-auto w-full my-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+        <!-- Main Recommendation Panel -->
+        <div class="bg-white/10 backdrop-blur-md rounded-3xl border-2 border-white/20 p-6 shadow-2xl relative overflow-hidden flex flex-col items-center text-center">
+          <p class="text-xs font-bold uppercase tracking-widest text-slate-300">Rekomendasi Utama</p>
+          <div id="res-rec-icon" class="w-24 h-24 bg-yellow-400 text-slate-900 rounded-full flex items-center justify-center text-5xl my-4 shadow-xl border-3 border-white">
+            💻
+          </div>
+          <h3 id="res-rec-title" class="text-3xl font-bubble text-yellow-400">TEKNIK KOMPUTER & JARINGAN</h3>
+          <p id="res-rec-desc" class="text-slate-300 text-sm leading-relaxed mt-2 max-w-sm"></p>
+        </div>
+
+        <!-- Details, Alternatif, Score breakdown -->
+        <div class="space-y-4">
+          <!-- Second recommendation -->
+          <div class="bg-white/5 border border-white/15 p-4 rounded-2xl flex items-center gap-4">
+            <div id="res-alt-icon" class="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center text-3xl">
+              🔧
+            </div>
+            <div>
+              <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Rekomendasi Alternatif</p>
+              <h4 id="res-alt-title" class="text-lg font-bubble text-white">TEKNIK KENDARAAN RINGAN</h4>
+              <p class="text-xs text-slate-300 leading-tight">Alternatif kejuruan yang menunjukkan skor tinggi kedua Anda.</p>
+            </div>
+          </div>
+
+          <!-- Score bar graphs -->
+          <div class="bg-white/5 border border-white/15 p-4 rounded-3xl space-y-3">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Grafik Nilai Jurusan SQLite:</h4>
+            
+            <div class="space-y-2">
+              <div>
+                <div class="flex justify-between text-xs font-bold text-slate-300 mb-0.5">
+                  <span>💻 Teknik Komputer dan Jaringan</span>
+                  <span id="chart-val-tkj">0%</span>
+                </div>
+                <div class="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
+                  <div id="chart-bar-tkj" class="bg-blue-400 h-full w-0 transition-all duration-1000 ease-out"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs font-bold text-slate-300 mb-0.5">
+                  <span>🔧 Teknik Kendaraan Ringan</span>
+                  <span id="chart-val-kr">0%</span>
+                </div>
+                <div class="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
+                  <div id="chart-bar-kr" class="bg-slate-400 h-full w-0 transition-all duration-1000 ease-out"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs font-bold text-slate-300 mb-0.5">
+                  <span>⚡ Teknik Instalasi Tenaga Listrik</span>
+                  <span id="chart-val-itl">0%</span>
+                </div>
+                <div class="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
+                  <div id="chart-bar-itl" class="bg-yellow-400 h-full w-0 transition-all duration-1000 ease-out"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs font-bold text-slate-300 mb-0.5">
+                  <span>🏍️ Teknik Sepeda Motor</span>
+                  <span id="chart-val-sm">0%</span>
+                </div>
+                <div class="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
+                  <div id="chart-bar-sm" class="bg-orange-500 h-full w-0 transition-all duration-1000 ease-out"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs font-bold text-slate-300 mb-0.5">
+                  <span>📋 Manajemen Perkantoran</span>
+                  <span id="chart-val-mp">0%</span>
+                </div>
+                <div class="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
+                  <div id="chart-bar-mp" class="bg-teal-400 h-full w-0 transition-all duration-1000 ease-out"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row justify-center items-center gap-4 pb-4">
+        <button onclick="downloadCertificate()" class="px-8 py-3.5 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bubble text-lg rounded-2xl border-3 border-black shadow-md w-full sm:w-auto text-center cursor-pointer">
+          UNDUH SERTIFIKAT <i class="fa-solid fa-file-arrow-down ml-1"></i>
+        </button>
+        <button onclick="openLeaderboard()" class="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bubble text-lg rounded-2xl border-3 border-black shadow-md w-full sm:w-auto text-center cursor-pointer">
+          LIHAT LEADERBOARD <i class="fa-solid fa-trophy ml-1"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD OVERLAY MODAL -->
+    <div id="screen-leaderboard" class="hidden absolute inset-0 bg-black/80 flex items-center justify-center p-4 pointer-events-auto">
+      <div class="bg-white border-4 border-black rounded-3xl max-w-lg w-full p-6 shadow-2xl relative flex flex-col max-h-[85vh]">
+        <button onclick="closeLeaderboard()" class="absolute -top-3 -right-3 w-10 h-10 bg-red-500 text-white border-3 border-black rounded-full flex items-center justify-center cursor-pointer hover:bg-red-600 shadow-md">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <div class="text-center mb-4">
+          <div class="text-4xl text-yellow-400 mb-1"><i class="fa-solid fa-crown animate-bounce"></i></div>
+          <h3 class="text-2xl font-bubble text-slate-800 leading-none">PAPAN PERINGKAT SQLITE</h3>
+          <p class="text-slate-400 text-xs font-bold mt-1 uppercase">Diurutkan Berdasarkan Nilai Terbanyak</p>
+        </div>
+
+        <div class="flex-1 overflow-y-auto space-y-2 pr-1" id="leaderboard-list">
+          <!-- Dynamic Leaderboard Items injected here -->
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-500">
+          <span>*Live query directly from SQLite database</span>
+          <span>Status: Real-time</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN/GURU PANEL & INTERACTIVE SQLITE CONSOLE -->
+    <div id="screen-admin" class="hidden absolute inset-0 bg-slate-900/95 flex items-center justify-center p-4 pointer-events-auto">
+      <div class="bg-white border-4 border-black rounded-3xl max-w-5xl w-full p-6 shadow-2xl relative flex flex-col h-[90vh]">
+        
+        <button onclick="closeAdminPanel()" class="absolute -top-3 -right-3 w-10 h-10 bg-red-500 text-white border-3 border-black rounded-full flex items-center justify-center cursor-pointer hover:bg-red-600 shadow-md">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <!-- Admin Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b-2 border-slate-100 pb-4 mb-4 gap-2">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-teal-100 border border-black rounded-xl flex items-center justify-center text-teal-600 text-2xl">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div>
+              <h3 class="font-bubble text-xl text-slate-800">Panel Guru & Admin SQLite</h3>
+              <p class="text-xs text-slate-400 font-semibold uppercase leading-none mt-1">Eksplorasi Skema Relasional SQLite & PPDB Data</p>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="exportDataCSV()" class="px-3.5 py-2 bg-teal-600 text-white border-2 border-black rounded-xl text-xs font-bold hover:bg-teal-700 cursor-pointer">
+              <i class="fa-solid fa-file-excel mr-1"></i> EXPORT CSV
+            </button>
+            <button onclick="seedInitialData()" class="px-3.5 py-2 bg-red-600 text-white border-2 border-black rounded-xl text-xs font-bold hover:bg-red-700 cursor-pointer">
+              <i class="fa-solid fa-arrows-rotate mr-1"></i> RESET SEED DATA
+            </button>
+          </div>
+        </div>
+
+        <!-- Main Admin Workspace: Split Table & SQL Command console -->
+        <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 overflow-hidden">
+          <!-- Left: Participants database table -->
+          <div class="lg:col-span-2 flex flex-col h-full overflow-hidden">
+            <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 mb-2 flex items-center justify-between gap-2">
+              <input type="text" id="admin-search" placeholder="Cari nama / NISN..." oninput="filterAdminTable()" class="w-full px-3 py-1.5 bg-white border-2 border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 text-sm font-semibold text-slate-800">
+              <div class="text-xs font-bold text-slate-500 whitespace-nowrap">
+                Total: <span id="admin-stat-total" class="text-slate-800">0</span>
+              </div>
+            </div>
+            
+            <div class="flex-1 overflow-auto border-2 border-slate-200 rounded-2xl">
+              <table class="w-full text-left border-collapse text-xs text-slate-800">
+                <thead>
+                  <tr class="bg-slate-100 text-slate-500 font-extrabold uppercase tracking-wider border-b border-slate-200 sticky top-0 z-10">
+                    <th class="p-3">Siswa</th>
+                    <th class="p-3">No PPDB</th>
+                    <th class="p-3 text-center">TKJ</th>
+                    <th class="p-3 text-center">TKR</th>
+                    <th class="p-3 text-center">TITL</th>
+                    <th class="p-3 text-center">TSM</th>
+                    <th class="p-3 text-center">MP</th>
+                    <th class="p-3 text-center">Rata</th>
+                    <th class="p-3 text-center font-bubble text-teal-600">Rekomendasi</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-table-body">
+                  <!-- Dynamically populated via SQLite query -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Right: Interactive Live SQLite Terminal Console -->
+          <div class="bg-slate-900 text-slate-100 p-4 rounded-2xl border-2 border-black flex flex-col h-full">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-2">
+              <span class="text-xs font-extrabold text-teal-400 font-mono"><i class="fa-solid fa-terminal mr-1"></i> SQLITE INTERACTIVE CONSOLE</span>
+              <button onclick="clearConsole()" class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400 hover:text-white font-mono">CLEAR</button>
+            </div>
+            
+            <p class="text-[10px] text-slate-400 font-mono mb-2">
+              Tabel tersedia: <b class="text-yellow-400">peserta</b>, <b class="text-yellow-400">nomor_pendaftaran</b>, <b class="text-yellow-400">soal</b>.
+            </p>
+
+            <div class="flex-1 overflow-y-auto font-mono text-xs space-y-2 p-2 bg-black/40 rounded-xl mb-3 border border-slate-800" id="console-output">
+              <div class="text-slate-500">Ketik kueri SQL di bawah, tekan Enter atau Jalankan Kueri.</div>
+            </div>
+
+            <!-- SQL Command Input area -->
+            <div class="space-y-2">
+              <textarea id="sql-input-cmd" rows="2" class="w-full p-2 bg-black text-emerald-400 border border-slate-700 rounded-lg focus:outline-none focus:border-teal-500 font-mono text-xs" placeholder="SELECT * FROM peserta ORDER BY score_tkj DESC LIMIT 3;"></textarea>
+              <button onclick="executeAdminSQL()" class="w-full py-2 bg-teal-500 hover:bg-teal-600 text-white font-bubble text-sm rounded-xl border border-black cursor-pointer">
+                JALANKAN KUERI SQL <i class="fa-solid fa-play ml-1"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Phaser Game Canvas Holder -->
+  <div id="game-container" class="absolute inset-0 z-0"></div>
+
+  <!-- Audio synthesizing scripts & SQLite Main Core -->
+  <script>
+    // --- AUDIO SYNTHESIZER ---
+    const AudioSynth = {
+      ctx: null,
+      init() {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      },
+      playTone(freq, type, duration, vol = 0.1) {
+        if (!this.ctx) this.init();
+        try {
+          if (this.ctx.state === 'suspended') this.ctx.resume();
+          const osc = this.ctx.createOscillator();
+          const gainNode = this.ctx.createGain();
+          
+          osc.type = type; // 'sine', 'square', 'sawtooth', 'triangle'
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          
+          gainNode.gain.setValueAtTime(vol, this.ctx.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.00001, this.ctx.currentTime + duration);
+          
+          osc.connect(gainNode);
+          gainNode.connect(this.ctx.destination);
+          
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {
+          console.warn("Audio Synth blocked:", e);
+        }
+      },
+      playFootstep() { this.playTone(150, 'triangle', 0.08, 0.05); },
+      playClick() { this.playTone(600, 'sine', 0.1, 0.08); },
+      playSuccess() {
+        this.playTone(523.25, 'sine', 0.15, 0.1); // C5
+        setTimeout(() => this.playTone(659.25, 'sine', 0.15, 0.1), 100); // E5
+        setTimeout(() => this.playTone(783.99, 'sine', 0.25, 0.15), 200); // G5
+      },
+      playError() {
+        this.playTone(220, 'sawtooth', 0.25, 0.15); // A3
+        setTimeout(() => this.playTone(180, 'sawtooth', 0.3, 0.15), 100);
+      },
+      playAchievement() {
+        this.playTone(440, 'square', 0.15, 0.1);
+        setTimeout(() => this.playTone(554.37, 'square', 0.15, 0.1), 100);
+        setTimeout(() => this.playTone(659.25, 'square', 0.15, 0.1), 200);
+        setTimeout(() => this.playTone(880, 'square', 0.4, 0.15), 300);
+      }
+    };
+
+    // --- SQLite DATABASE MANAGEMENT ---
+    let SQL = null;
+    let db = null;
+    let currentUser = null;
+
+    const JURUSAN_DETAILS = {
+      tkj: { title: "Teknik Komputer dan Jaringan", icon: "💻", badgeId: "badge-tkj", color: "#3b82f6", desc: "Mempelajari instalasi komputer, perakitan, jaringan kabel & nirkabel, serta konfigurasi server internet." },
+      tkr: { title: "Teknik Kendaraan Ringan", icon: "🔧", badgeId: "badge-tkr", color: "#9ca3af", desc: "Fokus pada perawatan, analisis kerusakan, pemeliharaan mesin, serta kelistrikan mobil modern." },
+      titl: { title: "Teknik Instalasi Tenaga Listrik", icon: "⚡", badgeId: "badge-titl", color: "#f59e0b", desc: "Mempelajari perancangan instalasi kelistrikan penerangan rumah, motor industri, dan otomatisasi listrik pintar." },
+      tsm: { title: "Teknik Sepeda Motor", icon: "🏍️", badgeId: "badge-tsm", color: "#f97316", desc: "Mempelajari siklus kerja mesin sepeda motor, sistem injeksi, dan tune up performa." },
+      mp: { title: "Manajemen Perkantoran", icon: "📋", badgeId: "badge-mp", color: "#14b8a6", desc: "Fokus pada pengarsipan surat-menyurat perkantoran, penanganan tamu humas, kearsipan digital, dan operasional bisnis." }
+    };
+
+    // Initialize Database on Boot
+    async function initSQLite() {
+      try {
+        const sqljs = await initSqlJs({
+          locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.6.2/${file}`
+        });
+        SQL = sqljs;
+        
+        // Load existing database from LocalStorage if binary state exists
+        const saved = localStorage.getItem('vtq_sqlite_db_v3');
+        if (saved) {
+          const binaryString = atob(saved);
+          const len = binaryString.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          db = new SQL.Database(bytes);
+          console.log("SQLite database loaded successfully from persistent storage.");
+        } else {
+          // Instantiate a fresh SQLite relational structure
+          db = new SQL.Database();
+          createTablesAndSeed();
+          saveDatabase();
+          console.log("Fresh SQLite database initialized and seeded.");
+        }
+        return true;
+      } catch (e) {
+        console.error("Failed to load SQL.js WASM engine:", e);
+        return false;
+      }
+    }
+
+    function createTablesAndSeed() {
+      // 1. Create PPDB NISN verification table
+      db.run(`CREATE TABLE IF NOT EXISTS nomor_pendaftaran (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        nama TEXT NOT NULL, 
+        nisn TEXT UNIQUE NOT NULL, 
+        nomor TEXT UNIQUE NOT NULL, 
+        sekolah TEXT NOT NULL
+      )`);
+
+      // 2. Create Candidate profile & assessment score state table
+      db.run(`CREATE TABLE IF NOT EXISTS peserta (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        nomor_pendaftaran TEXT UNIQUE NOT NULL, 
+        nisn TEXT UNIQUE NOT NULL, 
+        nama TEXT NOT NULL, 
+        asal_sekolah TEXT,
+        avatar_skin TEXT,
+        avatar_shirt TEXT,
+        avatar_pants TEXT,
+        avatar_accessories TEXT,
+        score_tkj INTEGER DEFAULT NULL,
+        score_tkr INTEGER DEFAULT NULL,
+        score_titl INTEGER DEFAULT NULL,
+        score_tsm INTEGER DEFAULT NULL,
+        score_mp INTEGER DEFAULT NULL,
+        completed INTEGER DEFAULT 0,
+        rec TEXT DEFAULT NULL
+      )`);
+
+      // 3. Create Bank Soal Table
+      db.run(`CREATE TABLE IF NOT EXISTS soal (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        jurusan TEXT NOT NULL,
+        pertanyaan TEXT NOT NULL,
+        pilihan_a TEXT NOT NULL,
+        pilihan_b TEXT NOT NULL,
+        pilihan_c TEXT NOT NULL,
+        kunci_jawaban INTEGER NOT NULL,
+        rasionale TEXT NOT NULL
+      )`);
+
+      // Seed Nomor Pendaftaran
+      const stmtNomor = db.prepare("INSERT OR IGNORE INTO nomor_pendaftaran (nama, nisn, nomor, sekolah) VALUES (?, ?, ?, ?)");
+      stmtNomor.run(["Ahmad Fauzi", "0012345678", "PPDB-2026-0001", "SMPN 1 Tangerang"]);
+      stmtNomor.run(["Siti Rahmawati", "0023456789", "PPDB-2026-0002", "SMPN 2 Tangerang"]);
+      stmtNomor.run(["Budi Pratama", "0034567890", "PPDB-2026-0003", "SMPN 3 Cikupa"]);
+      stmtNomor.run(["Dian Saputra", "0045678901", "PPDB-2026-0004", "SMP Nurul Iman"]);
+      stmtNomor.run(["Eka Lestari", "0056789012", "PPDB-2026-0005", "SMPN 5 Tangerang"]);
+      stmtNomor.free();
+
+      // Seed Dummy completed participants for dynamic Leaderboard
+      const stmtPeserta = db.prepare(`INSERT OR IGNORE INTO peserta (
+        nomor_pendaftaran, nisn, nama, asal_sekolah, avatar_skin, avatar_shirt, avatar_pants, avatar_accessories, 
+        score_tkj, score_tkr, score_titl, score_tsm, score_mp, completed, rec
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`);
+      
+      stmtPeserta.run(["PPDB-2026-0002", "0023456789", "Siti Rahmawati", "SMPN 2 Tangerang", "#f1c27d", "#ec4899", "#4b5563", "kacamata", 85, 70, 95, 60, 90, "titl"]);
+      stmtPeserta.run(["PPDB-2026-0003", "0034567890", "Budi Pratama", "SMPN 3 Cikupa", "#e0ac69", "#10b981", "#1f2937", "topi", 70, 90, 80, 85, 65, "tkr"]);
+      stmtPeserta.run(["PPDB-2026-0004", "0045678901", "Dian Saputra", "SMP Nurul Iman", "#c68642", "#f59e0b", "#ef4444", "", 90, 85, 75, 95, 70, "tsm"]);
+      stmtPeserta.run(["PPDB-2026-0005", "0056789012", "Eka Lestari", "SMPN 5 Tangerang", "#8d5524", "#8b5cf6", "#1f2937", "tas", 75, 60, 70, 65, 95, "mp"]);
+      stmtPeserta.free();
+
+      // Seed Soal Bank
+      const stmtSoal = db.prepare(`INSERT OR IGNORE INTO soal (jurusan, pertanyaan, pilihan_a, pilihan_b, pilihan_c, kunci_jawaban, rasionale) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+      
+      // TKJ Questions
+      stmtSoal.run(["tkj", "Urutan pin kabel LAN kategori RJ-45 jenis straight-through setelah Putih-Oranye dan Oranye adalah...", "Putih-Hijau", "Putih-Biru", "Biru", 0, "Urutan kabel straight standar T568B adalah Putih-Oranye, Oranye, Putih-Hijau, Biru, Putih-Biru, Hijau, Putih-Cokelat, Cokelat."]);
+      stmtSoal.run(["tkj", "Manakah di bawah ini yang merupakan fungsi utama dari Router?", "Menghubungkan jaringan lokal yang berbeda", "Mengirimkan arus listrik tegangan tinggi", "Menghubungkan piston dengan crankshaft", 0, "Router bekerja pada Layer 3 untuk merutekan paket data antar-segmen jaringan yang berbeda subnet."]);
+      stmtSoal.run(["tkj", "Perintah dasar Linux untuk mendeteksi latensi konektivitas ke server target menggunakan protokol ICMP adalah...", "ping", "ipconfig", "mkdir", 0, "Ping menggunakan pesan Echo Request dan Echo Reply dari protokol ICMP untuk mengukur delay/latensi."]);
+
+      // TKR Questions
+      stmtSoal.run(["tkr", "Alat pengukur celah atau ketebalan presisi pada komponen otomotif dinamakan...", "Feeler gauge (Filer)", "Multitester digital", "Kunci torsi", 0, "Feeler gauge digunakan untuk mengukur celah klep, celah busi, atau gap presisi tinggi lainnya."]);
+      stmtSoal.run(["tkr", "Fungsi utama oli transmisi pada kendaraan ringan adalah...", "Melumasi gesekan roda gigi transmisi", "Membakar bensin di dalam silinder", "Menstabilkan muatan aki mobil", 0, "Oli transmisi mengurangi keausan pada komponen logam yang saling bergesekan dalam sistem transmisi manual."]);
+      stmtSoal.run(["tkr", "Siklus kerja motor bensin 4-tak secara berurutan adalah...", "Hisap, Kompresi, Usaha, Buang", "Kompresi, Hisap, Buang, Usaha", "Hisap, Buang, Usaha, Kompresi", 0, "Siklus langkah mesin bensin diawali dengan Hisap, Kompresi, Usaha (pembakaran), dan pembuangan gas sisa (Buang)."]);
+
+      // TITL Questions
+      stmtSoal.run(["titl", "Satuan untuk mengukur besarnya muatan arus listrik dinamis adalah...", "Ampere", "Volt", "Ohm", 0, "Arus listrik diukur dalam Ampere (A). Volt mengukur tegangan, dan Ohm mengukur hambatan."]);
+      stmtSoal.run(["titl", "Kabel instalasi rumah tinggal berkawat tembaga tunggal berlapis isolasi PVC putih dinamakan tipe...", "Kabel NYM", "Kabel NYA", "Kabel NYY", 0, "Kabel NYM memiliki isolasi ganda (PVC luar putih) yang aman untuk instalasi kelistrikan di dalam rumah tinggal."]);
+      stmtSoal.run(["titl", "Alat pengaman beban lebih aliran listrik dari terjadinya korsleting berlebih di rumah adalah...", "MCB (Miniature Circuit Breaker)", "Sakelar Tukar", "KWH Meter", 0, "MCB mematikan aliran listrik secara otomatis ketika arus yang lewat melebihi batas nominalnya untuk mencegah kebakaran."]);
+
+      // TSM Questions
+      stmtSoal.run(["tsm", "Penyebab utama motor matic sering selip saat akselerasi awal adalah...", "V-Belt kotor atau kampas ganda aus", "Piston silinder aus", "Busi berkarat", 0, "Selip pada transmisi otomatis (CVT) diakibatkan oleh menipisnya kampas ganda atau V-Belt yang beroli kotor."]);
+      stmtSoal.run(["tsm", "Berapakah perbandingan kompresi ideal bagi motor bersistem bahan bakar injeksi?", "Sekitar 9.5:1 sampai 11:1", "Tepat 5:1", "Lebih dari 20:1", 0, "Mesin bensin injeksi modern didesain pada kompresi optimal 9.5:1 ke atas untuk efisiensi pembakaran tinggi."]);
+      stmtSoal.run(["tsm", "Fungsi dari karburator atau throttle body pada sepeda motor adalah...", "Mencampur bahan bakar dengan udara", "Mengubah arus AC menjadi DC", "Memompa oli ke kepala silinder", 0, "Kedua komponen tersebut berfungsi sebagai pengabut bahan bakar cair dan mencampurnya dengan udara bersih sebelum masuk ruang bakar."]);
+
+      // MP Questions
+      stmtSoal.run(["mp", "Sistem penyimpanan dokumen berdasarkan susunan nama perusahaan atau perseorangan dinamakan...", "Sistem Abjad (Alphabetic system)", "Sistem Geografis", "Sistem Kronologis", 0, "Sistem abjad menyusun folder arsip berdasarkan indeks nama (A-Z) untuk mempercepat pencarian visual dokumen."]);
+      stmtSoal.run(["mp", "Mesin kantor yang berfungsi menyalin dokumen kertas menjadi file digital bernama...", "Scanner", "Printers", "Mesin laminating", 0, "Scanner menangkap citra dokumen kertas fisik dan mengubahnya menjadi file citra digital PDF/JPEG."]);
+      stmtSoal.run(["mp", "Kalimat pembuka surat lamaran pekerjaan yang baik dan sopan adalah...", "Berdasarkan informasi lowongan yang saya dapatkan...", "Tolong terima lamaran saya ini...", "Perusahaan Anda membutuhkan saya...", 0, "Surat formal menggunakan pembuka persuasif-objektif yang sopan mengacu pada sumber informasi lowongan yang absah."]);
+
+      stmtSoal.free();
+    }
+
+    function saveDatabase() {
+      if (!db) return;
+      const binary = db.export();
+      let binaryString = "";
+      for (let i = 0; i < binary.length; i++) {
+        binaryString += String.fromCharCode(binary[i]);
+      }
+      localStorage.setItem('vtq_sqlite_db_v3', btoa(binaryString));
+    }
+
+    // --- NAVIGATION LOGIC ---
+    function navigateToScreen(screenId) {
+      ['screen-boot', 'screen-login', 'screen-avatar', 'screen-dialog', 'screen-quiz', 'screen-minigame', 'screen-lab-complete', 'screen-result', 'screen-leaderboard', 'screen-admin'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      if (screenId) {
+        const el = document.getElementById(screenId);
+        if (el) el.classList.remove('hidden');
+      }
+    }
+
+    // --- BOOT ENGINE LOAD EFFECT ---
+    window.onload = async function() {
+      const progressEl = document.getElementById('boot-progress');
+      const statusEl = document.getElementById('boot-status');
+      
+      let step = 0;
+      const progressInterval = setInterval(() => {
+        step += 8;
+        if (step > 40) step = 40; // hold to wait for SQL Load
+        progressEl.style.width = step + '%';
+      }, 50);
+
+      // Initialize SQLite relasional database
+      const success = await initSQLite();
+      clearInterval(progressInterval);
+
+      if (success) {
+        let finalStep = 40;
+        const completeInterval = setInterval(() => {
+          finalStep += 15;
+          if (finalStep >= 100) {
+            finalStep = 100;
+            clearInterval(completeInterval);
+            setTimeout(() => {
+              navigateToScreen('screen-login');
+            }, 300);
+          }
+          progressEl.style.width = finalStep + '%';
+          statusEl.innerText = "Kompilasi SQLite database & engine kuis berhasil!";
+        }, 80);
+      } else {
+        statusEl.innerText = "Terjadi kegagalan memuat modul WebAssembly SQLite. Hubungi administrator.";
+        statusEl.className = "text-red-400 text-xs mt-3";
+      }
+    };
+
+    // --- FORM SUBMIT: LOGIN QUERY ---
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      AudioSynth.playClick();
+      
+      const inputNama = document.getElementById('login-nama').value.trim();
+      const inputNisn = document.getElementById('login-nisn').value.trim();
+
+      // SQL Query: Check credentials inside SQLite 'nomor_pendaftaran' table
+      const stmt = db.prepare("SELECT * FROM nomor_pendaftaran WHERE LOWER(nama) = LOWER(:nama) AND nisn = :nisn");
+      stmt.bind({ ':nama': inputNama, ':nisn': inputNisn });
+      
+      const hasMatch = stmt.step();
+      let matchRow = null;
+      if (hasMatch) {
+        matchRow = stmt.getAsObject();
+      }
+      stmt.free();
+
+      if (matchRow) {
+        document.getElementById('login-error').classList.add('hidden');
+
+        // Check if participant record already exists in SQLite
+        const stmtPeserta = db.prepare("SELECT * FROM peserta WHERE nisn = :nisn");
+        stmtPeserta.bind({ ':nisn': inputNisn });
+        const hasPeserta = stmtPeserta.step();
+        
+        if (hasPeserta) {
+          const row = stmtPeserta.getAsObject();
+          currentUser = {
+            nama: row.nama,
+            nisn: row.nisn,
+            nomor_pendaftaran: row.nomor_pendaftaran,
+            asal_sekolah: row.asal_sekolah,
+            avatar: {
+              skin: row.avatar_skin,
+              shirt: row.avatar_shirt,
+              pants: row.avatar_pants,
+              accessories: row.avatar_accessories ? row.avatar_accessories.split(',') : []
+            },
+            scores: {
+              tkj: row.score_tkj,
+              tkr: row.score_tkr,
+              titl: row.score_titl,
+              tsm: row.score_tsm,
+              mp: row.score_mp
+            },
+            completed: row.completed === 1,
+            rec: row.rec
+          };
+          avatarConfig = { ...currentUser.avatar };
+        } else {
+          // Create new record in active SQLite
+          currentUser = {
+            nama: matchRow.nama,
+            nisn: matchRow.nisn,
+            nomor_pendaftaran: matchRow.nomor,
+            asal_sekolah: matchRow.sekolah,
+            avatar: { skin: '#ffdbac', shirt: '#3b82f6', pants: '#1f2937', accessories: [] },
+            scores: { tkj: null, tkr: null, titl: null, tsm: null, mp: null },
+            completed: false,
+            rec: null
+          };
+          
+          // Write SQLite insert command
+          const insertStmt = db.prepare(`INSERT INTO peserta (
+            nomor_pendaftaran, nisn, nama, asal_sekolah, avatar_skin, avatar_shirt, avatar_pants, avatar_accessories
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+          insertStmt.run([
+            currentUser.nomor_pendaftaran,
+            currentUser.nisn,
+            currentUser.nama,
+            currentUser.asal_sekolah,
+            currentUser.avatar.skin,
+            currentUser.avatar.shirt,
+            currentUser.avatar.pants,
+            ""
+          ]);
+          insertStmt.free();
+          saveDatabase();
+        }
+        stmtPeserta.free();
+
+        AudioSynth.playSuccess();
+        navigateToScreen('screen-avatar');
+        renderAvatarEditor();
+      } else {
+        AudioSynth.playError();
+        const errEl = document.getElementById('login-error');
+        errEl.classList.remove('hidden');
+        document.getElementById('login-error-text').innerText = "Kombinasi Nama atau NISN tidak terdaftar di database PPDB!";
+      }
+    });
+
+    // --- AVATAR EDITOR & DESIGN MECHANICS ---
+    let avatarConfig = {
+      skin: '#ffdbac',
+      shirt: '#3b82f6',
+      pants: '#1f2937',
+      accessories: []
+    };
+
+    function updateAvatar(property, value) {
+      AudioSynth.playTone(300, 'sine', 0.05, 0.05);
+      avatarConfig[property] = value;
+      renderAvatarEditor();
+    }
+
+    function toggleAccessory(name) {
+      AudioSynth.playTone(320, 'sine', 0.05, 0.05);
+      const idx = avatarConfig.accessories.indexOf(name);
+      if (idx > -1) {
+        avatarConfig.accessories.splice(idx, 1);
+        document.getElementById(`acc-${name}`).classList.remove('bg-yellow-400', 'text-slate-900', 'border-black');
+        document.getElementById(`acc-${name}`).classList.add('bg-slate-100', 'text-slate-600', 'border-slate-300');
+      } else {
+        avatarConfig.accessories.push(name);
+        document.getElementById(`acc-${name}`).classList.add('bg-yellow-400', 'text-slate-900', 'border-black');
+        document.getElementById(`acc-${name}`).classList.remove('bg-slate-100', 'text-slate-600', 'border-slate-300');
+      }
+      renderAvatarEditor();
+    }
+
+    function drawBlockyAvatar(canvasId, config) {
+      const c = document.getElementById(canvasId);
+      if (!c) return;
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, c.width, c.height);
+
+      const cx = c.width / 2;
+      const cy = c.height / 2;
+
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 3.5;
+
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 85, 45, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Legs
+      ctx.fillStyle = config.pants;
+      ctx.fillRect(cx - 22, cy + 25, 18, 55);
+      ctx.strokeRect(cx - 22, cy + 25, 18, 55);
+      ctx.fillRect(cx + 4, cy + 25, 18, 55);
+      ctx.strokeRect(cx + 4, cy + 25, 18, 55);
+
+      // Torso
+      ctx.fillStyle = config.shirt;
+      ctx.fillRect(cx - 30, cy - 35, 60, 60);
+      ctx.strokeRect(cx - 30, cy - 35, 60, 60);
+
+      // Arms
+      ctx.fillRect(cx - 48, cy - 35, 18, 55);
+      ctx.strokeRect(cx - 48, cy - 35, 18, 55);
+      ctx.fillRect(cx + 30, cy - 35, 18, 55);
+      ctx.strokeRect(cx + 30, cy - 35, 18, 55);
+
+      // Hands
+      ctx.fillStyle = config.skin;
+      ctx.fillRect(cx - 48, cy + 20, 18, 12);
+      ctx.strokeRect(cx - 48, cy + 20, 18, 12);
+      ctx.fillRect(cx + 30, cy + 20, 18, 12);
+      ctx.strokeRect(cx + 30, cy + 20, 18, 12);
+
+      // Head
+      ctx.fillRect(cx - 22, cy - 75, 44, 40);
+      ctx.strokeRect(cx - 22, cy - 75, 44, 40);
+
+      // Eyes
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(cx - 14, cy - 62, 6, 6);
+      ctx.fillRect(cx + 8, cy - 62, 6, 6);
+
+      // Mouth
+      ctx.beginPath();
+      ctx.arc(cx, cy - 52, 6, 0, Math.PI, false);
+      ctx.stroke();
+
+      // Neck
+      ctx.fillStyle = config.skin;
+      ctx.fillRect(cx - 8, cy - 38, 16, 4);
+
+      // Accessories
+      if (config.accessories.includes('topi')) {
+        ctx.fillStyle = '#a16207';
+        ctx.fillRect(cx - 34, cy - 82, 68, 8);
+        ctx.strokeRect(cx - 34, cy - 82, 68, 8);
+        ctx.fillRect(cx - 20, cy - 100, 40, 18);
+        ctx.strokeRect(cx - 20, cy - 100, 40, 18);
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(cx - 20, cy - 86, 40, 4);
+      }
+
+      if (config.accessories.includes('kacamata')) {
+        ctx.fillStyle = '#111827';
+        ctx.fillRect(cx - 18, cy - 65, 15, 10);
+        ctx.strokeRect(cx - 18, cy - 65, 15, 10);
+        ctx.fillRect(cx + 3, cy - 65, 15, 10);
+        ctx.strokeRect(cx + 3, cy - 65, 15, 10);
+        ctx.beginPath();
+        ctx.moveTo(cx - 3, cy - 60);
+        ctx.lineTo(cx + 3, cy - 60);
+        ctx.stroke();
+      }
+
+      if (config.accessories.includes('tas')) {
+        ctx.fillStyle = '#1e3a8a';
+        ctx.fillRect(cx - 26, cy - 35, 8, 30);
+        ctx.strokeRect(cx - 26, cy - 35, 8, 30);
+        ctx.fillRect(cx + 18, cy - 35, 8, 30);
+        ctx.strokeRect(cx + 18, cy - 35, 8, 30);
+      }
+    }
+
+    function renderAvatarEditor() {
+      drawBlockyAvatar('avatar-canvas', avatarConfig);
+    }
+
+    function saveAvatarAndEnterGame() {
+      AudioSynth.playSuccess();
+      currentUser.avatar = { ...avatarConfig };
+      
+      // Update SQLite database state for avatar
+      const updateStmt = db.prepare(`UPDATE peserta SET 
+        avatar_skin = ?, avatar_shirt = ?, avatar_pants = ?, avatar_accessories = ? 
+        WHERE nisn = ?`);
+      updateStmt.run([
+        currentUser.avatar.skin,
+        currentUser.avatar.shirt,
+        currentUser.avatar.pants,
+        currentUser.avatar.accessories.join(','),
+        currentUser.nisn
+      ]);
+      updateStmt.free();
+      saveDatabase();
+
+      // Proceed to Game HUD
+      navigateToScreen(null);
+      document.getElementById('game-hud').classList.remove('hidden');
+      
+      document.getElementById('hud-player-name').innerText = currentUser.nama;
+      document.getElementById('hud-player-nisn').innerText = "NISN: " + currentUser.nisn;
+      document.getElementById('hud-player-no').innerText = "No: " + currentUser.nomor_pendaftaran;
+
+      drawBlockyAvatar('hud-avatar-canvas', currentUser.avatar);
+
+      updateHudBadges();
+      initPhaserGame();
+    }
+
+    function updateHudBadges() {
+      ['tkj', 'tkr', 'titl', 'tsm', 'mp'].forEach(jurusan => {
+        const score = currentUser.scores[jurusan];
+        const badge = document.getElementById(`badge-${jurusan}`);
+        if (score !== null) {
+          badge.classList.remove('bg-slate-200', 'text-slate-500', 'border-slate-400');
+          badge.classList.add('bg-green-500', 'text-white', 'border-black');
+          badge.style.transform = "scale(1.1)";
+        }
+      });
+
+      const allDone = ['tkj', 'tkr', 'titl', 'tsm', 'mp'].every(jurusan => currentUser.scores[jurusan] !== null);
+      if (allDone) {
+        document.getElementById('btn-finalize').classList.remove('hidden');
+      }
+    }
+
+    // --- DIALOG TRIGGER ---
+    let selectedJurusan = null;
+
+    function triggerNpcInteraction(jurusan) {
+      selectedJurusan = jurusan;
+      const data = JURUSAN_DETAILS[jurusan];
+      
+      document.getElementById('dialog-npc-name').innerText = "Guru Pembina " + jurusan.toUpperCase();
+      document.getElementById('dialog-npc-title').innerText = "Kepala Laboratorium " + jurusan.toUpperCase();
+      document.getElementById('dialog-text').innerText = "Selamat datang di " + data.title + "! " + data.desc + " Apakah kamu siap membuktikan bakat & pengetahuanmu dalam lab ini?";
+      
+      const emojis = { tkj: "👨‍💻", tkr: "👨‍🔧", titl: "⚡", tsm: "🏍️", mp: "👩‍💼" };
+      document.getElementById('dialog-npc-pic').innerText = emojis[jurusan] || "👨‍🏫";
+
+      navigateToScreen('screen-dialog');
+
+      document.getElementById('btn-dialog-start').onclick = function() {
+        AudioSynth.playClick();
+        startLabAssessment(jurusan);
+      };
+    }
+
+    function closeDialog() {
+      AudioSynth.playClick();
+      navigateToScreen(null);
+      document.getElementById('game-hud').classList.remove('hidden');
+    }
+
+    // --- ASSESSMENT LOGIC (KUIS + MINI GAME) ---
+    let activeQuizList = [];
+    let currentQuestionIdx = 0;
+    let quizScoreAccumulator = 0;
+    let quizTimerInterval = null;
+    let quizTimeLeft = 10;
+
+    function startLabAssessment(jurusan) {
+      navigateToScreen('screen-quiz');
+      document.getElementById('quiz-jurusan-icon').innerText = JURUSAN_DETAILS[jurusan].icon;
+      document.getElementById('quiz-jurusan-title').innerText = "Tes Teori " + jurusan.toUpperCase();
+      
+      // SQL Query: Fetch questions dynamically from SQLite 'soal' bank
+      const stmt = db.prepare("SELECT * FROM soal WHERE jurusan = :jur LIMIT 3");
+      stmt.bind({ ':jur': jurusan });
+      activeQuizList = [];
+      while (stmt.step()) {
+        const row = stmt.getAsObject();
+        activeQuizList.push({
+          q: row.pertanyaan,
+          a: [row.pilihan_a, row.pilihan_b, row.pilihan_c],
+          c: row.kunci_jawaban,
+          r: row.rasionale
+        });
+      }
+      stmt.free();
+
+      currentQuestionIdx = 0;
+      quizScoreAccumulator = 0;
+      
+      showQuizQuestion();
+    }
+
+    function showQuizQuestion() {
+      if (quizTimerInterval) clearInterval(quizTimerInterval);
+      
+      const qData = activeQuizList[currentQuestionIdx];
+      document.getElementById('quiz-progress-label').innerText = `Soal ${currentQuestionIdx + 1} / ${activeQuizList.length}`;
+      document.getElementById('quiz-question-text').innerText = qData.q;
+      
+      const grid = document.getElementById('quiz-options-grid');
+      grid.innerHTML = '';
+      
+      qData.a.forEach((optText, optIdx) => {
+        const btn = document.createElement('button');
+        btn.className = "w-full p-3.5 bg-slate-50 border-2 border-slate-200 text-slate-800 text-left font-semibold text-sm rounded-2xl hover:bg-slate-100 hover:border-slate-400 cursor-pointer flex items-center gap-3 transition active:scale-95";
+        
+        const abc = ["A", "B", "C"];
+        btn.innerHTML = `<span class="bg-blue-100 text-blue-700 font-extrabold w-7 h-7 rounded-lg flex items-center justify-center">${abc[optIdx]}</span> ${optText}`;
+        btn.onclick = () => submitQuizAnswer(optIdx);
+        grid.appendChild(btn);
+      });
+
+      // Start Countdown Timer
+      quizTimeLeft = 10;
+      const bar = document.getElementById('quiz-timer-bar');
+      bar.style.width = '100%';
+      bar.classList.remove('bg-red-600');
+      bar.classList.add('bg-green-500');
+
+      quizTimerInterval = setInterval(() => {
+        quizTimeLeft--;
+        const pct = (quizTimeLeft / 10) * 100;
+        bar.style.width = pct + '%';
+
+        if (quizTimeLeft <= 3) {
+          bar.classList.remove('bg-green-500');
+          bar.classList.add('bg-red-500');
+        }
+
+        if (quizTimeLeft <= 0) {
+          clearInterval(quizTimerInterval);
+          submitQuizAnswer(-1); // Timeout
+        }
+      }, 1000);
+    }
+
+    function submitQuizAnswer(chosenIdx) {
+      clearInterval(quizTimerInterval);
+      const qData = activeQuizList[currentQuestionIdx];
+      const isCorrect = chosenIdx === qData.c;
+
+      if (isCorrect) {
+        AudioSynth.playSuccess();
+        quizScoreAccumulator += 100 / activeQuizList.length;
+        document.getElementById('feedback-title').innerText = "JAWABAN BENAR!";
+        document.getElementById('feedback-title').className = "text-2xl font-bubble text-green-600";
+        document.getElementById('feedback-icon').innerText = "🎉";
+      } else {
+        AudioSynth.playError();
+        document.getElementById('feedback-title').innerText = "JAWABAN SALAH!";
+        document.getElementById('feedback-title').className = "text-2xl font-bubble text-red-600";
+        document.getElementById('feedback-icon').innerText = "💥";
+      }
+
+      document.getElementById('feedback-desc').innerText = qData.r;
+      document.getElementById('quiz-feedback').classList.remove('hidden');
+    }
+
+    function nextQuizStep() {
+      document.getElementById('quiz-feedback').classList.add('hidden');
+      currentQuestionIdx++;
+
+      if (currentQuestionIdx < activeQuizList.length) {
+        showQuizQuestion();
+      } else {
+        startMiniGame(selectedJurusan);
+      }
+    }
+
+    // --- MINI-GAME LOGIC SYSTEM ---
+    let gameTimerInterval = null;
+    let gameTimeLeft = 30;
+    let gameScoreAccumulator = 0;
+    let gameCanvas, gameCtx;
+    let gameElements = [];
+    let isDragging = false;
+    let draggedElement = null;
+
+    function startMiniGame(jurusan) {
+      navigateToScreen('screen-minigame');
+      
+      const details = JURUSAN_DETAILS[jurusan];
+      document.getElementById('game-icon').innerText = details.icon;
+      document.getElementById('game-title').innerText = "Praktik: " + details.title;
+      document.getElementById('minigame-complete-popup').classList.add('hidden');
+
+      gameCanvas = document.getElementById('minigame-canvas');
+      gameCtx = gameCanvas.getContext('2d');
+      
+      setupMinigameLogic(jurusan);
+
+      // Start Game Loop Countdown
+      gameTimeLeft = 30;
+      gameScoreAccumulator = 0;
+      document.getElementById('game-timer').innerText = `Sisa Waktu: ${gameTimeLeft}s`;
+      document.getElementById('game-score').innerText = `Skor: ${gameScoreAccumulator}`;
+
+      if (gameTimerInterval) clearInterval(gameTimerInterval);
+      gameTimerInterval = setInterval(() => {
+        gameTimeLeft--;
+        document.getElementById('game-timer').innerText = `Sisa Waktu: ${gameTimeLeft}s`;
+        
+        if (gameTimeLeft <= 0) {
+          clearInterval(gameTimerInterval);
+          finishMinigame();
+        }
+      }, 1000);
+
+      // Drag event bindings
+      gameCanvas.onmousedown = handleMouseDown;
+      gameCanvas.onmousemove = handleMouseMove;
+      gameCanvas.onmouseup = handleMouseUp;
+
+      gameCanvas.ontouchstart = (e) => {
+        const t = e.touches[0];
+        handleMouseDown({ clientX: t.clientX, clientY: t.clientY, preventDefault: () => {} });
+      };
+      gameCanvas.ontouchmove = (e) => {
+        const t = e.touches[0];
+        handleMouseMove({ clientX: t.clientX, clientY: t.clientY, preventDefault: () => {} });
+      };
+      gameCanvas.ontouchend = handleMouseUp;
+
+      renderGameLoop();
+    }
+
+    function setupMinigameLogic(jurusan) {
+      gameElements = [];
+      const cx = gameCanvas.width / 2;
+      const cy = gameCanvas.height / 2;
+
+      if (jurusan === 'tkj') {
+        document.getElementById('game-instr').innerText = "KABEL QUEST: Tarik konektor RJ45 ke port router sewarna!";
+        const colors = ['#ef4444', '#3b82f6', '#f59e0b'];
+        const names = ['MERAH', 'BIRU', 'JINGGA'];
+        
+        colors.forEach((col, idx) => {
+          gameElements.push({ type: 'target', color: col, x: 100 + idx * 140, y: 80, r: 25, matched: false, name: names[idx] });
+        });
+
+        const shuffledIndexes = [2, 0, 1];
+        colors.forEach((col, idx) => {
+          const shuffleIdx = shuffledIndexes[idx];
+          gameElements.push({
+            type: 'draggable', color: col, x: 100 + shuffleIdx * 140, y: 280, r: 20,
+            targetX: 100 + idx * 140, targetY: 80, startX: 100 + shuffleIdx * 140, startY: 280, name: names[idx], matched: false
+          });
+        });
+      } 
+      else if (jurusan === 'tkr') {
+        document.getElementById('game-instr').innerText = "ENGINE BUILDER: Pasangkan Piston, Busi, dan Crankshaft ke jalurnya!";
+        const parts = [
+          { name: 'PISTON', label: 'Silinder B', icon: '⚙️', color: '#6b7280' },
+          { name: 'BUSI', label: 'Pengapian', icon: '🕯️', color: '#ef4444' },
+          { name: 'CRANKSHAFT', label: 'As Kruk', icon: '🔄', color: '#10b981' }
+        ];
+
+        parts.forEach((p, idx) => {
+          gameElements.push({ type: 'target', color: '#374151', x: 100 + idx * 140, y: 80, w: 80, h: 80, name: p.name, matched: false, label: p.label });
+        });
+
+        parts.forEach((p, idx) => {
+          const shufX = 100 + ((idx + 1) % 3) * 140;
+          gameElements.push({
+            type: 'draggable', color: p.color, x: shufX, y: 280, w: 70, h: 70, startX: shufX, startY: 280,
+            targetX: 100 + idx * 140, targetY: 80, name: p.name, icon: p.icon, matched: false
+          });
+        });
+      }
+      else if (jurusan === 'titl') {
+        document.getElementById('game-instr').innerText = "CIRCUIT CONNECT: Hubungkan kabel Baterai (+) ke Lampu (-)!";
+        gameElements.push({ type: 'target', color: '#f59e0b', x: 400, y: 180, r: 30, name: 'LAMPU', matched: false });
+        gameElements.push({
+          type: 'draggable', color: '#3b82f6', x: 80, y: 180, r: 20, startX: 80, startY: 180,
+          targetX: 400, targetY: 180, name: 'KABEL BATERAI', matched: false
+        });
+      }
+      else if (jurusan === 'tsm') {
+        document.getElementById('game-instr').innerText = "GEAR TYCOON: Pasangkan Gir Penggerak Rantai dengan Gir Belakang!";
+        gameElements.push({ type: 'target', color: '#f97316', x: 320, y: 180, r: 45, name: 'AS RODA', matched: false });
+        gameElements.push({
+          type: 'draggable', color: '#4b5563', x: 120, y: 180, r: 35, startX: 120, startY: 180,
+          targetX: 320, targetY: 180, name: 'GIR RANTAI', matched: false
+        });
+      }
+      else if (jurusan === 'mp') {
+        document.getElementById('game-instr').innerText = "OFFICE ARCHIVE: Seret surat resmi ke MAP ARSIP JURUSAN!";
+        gameElements.push({ type: 'target', color: '#14b8a6', x: 320, y: 180, w: 100, h: 120, name: 'MAP ARSIP', matched: false });
+        gameElements.push({
+          type: 'draggable', color: '#f3f4f6', x: 120, y: 180, w: 80, h: 100, startX: 120, startY: 180,
+          targetX: 320, targetY: 180, name: 'SURAT RESMI', matched: false
+        });
+      }
+    }
+
+    function renderGameLoop() {
+      if (document.getElementById('screen-minigame').classList.contains('hidden')) return;
+
+      gameCtx.fillStyle = '#0f172a';
+      gameCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+      if (selectedJurusan === 'tkj') {
+        gameCtx.strokeStyle = 'rgba(255,255,255,0.05)';
+        gameCtx.lineWidth = 10;
+        gameCtx.strokeRect(30, 30, gameCanvas.width - 60, 110);
+      }
+
+      // Targets
+      gameElements.filter(e => e.type === 'target').forEach(t => {
+        gameCtx.strokeStyle = '#ffffff';
+        gameCtx.lineWidth = 3;
+        gameCtx.setLineDash([4, 4]);
+
+        if (t.r) {
+          gameCtx.fillStyle = t.matched ? t.color : 'rgba(255,255,255,0.05)';
+          gameCtx.beginPath();
+          gameCtx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
+          gameCtx.fill();
+          gameCtx.stroke();
+        } else {
+          gameCtx.fillStyle = t.matched ? t.color : 'rgba(255,255,255,0.05)';
+          gameCtx.fillRect(t.x - t.w/2, t.y - t.h/2, t.w, t.h);
+          gameCtx.strokeRect(t.x - t.w/2, t.y - t.h/2, t.w, t.h);
+        }
+
+        gameCtx.setLineDash([]);
+        gameCtx.fillStyle = '#94a3b8';
+        gameCtx.font = 'bold 11px Fredoka';
+        gameCtx.textAlign = 'center';
+        gameCtx.fillText(t.name, t.x, t.y + (t.h ? t.h/2 + 15 : t.r + 15));
+        if (t.label) {
+          gameCtx.fillText(t.label, t.x, t.y - (t.h ? t.h/2 + 5 : t.r + 5));
+        }
+      });
+
+      // Connection lines
+      gameElements.filter(e => e.type === 'draggable').forEach(d => {
+        if (d.matched) {
+          gameCtx.strokeStyle = d.color;
+          gameCtx.lineWidth = 6;
+          gameCtx.beginPath();
+          gameCtx.moveTo(d.startX, d.startY);
+          gameCtx.lineTo(d.targetX, d.targetY);
+          gameCtx.stroke();
+        } else if (draggedElement === d) {
+          gameCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+          gameCtx.lineWidth = 4;
+          gameCtx.beginPath();
+          gameCtx.moveTo(d.startX, d.startY);
+          gameCtx.lineTo(d.x, d.y);
+          gameCtx.stroke();
+        }
+      });
+
+      // Draggables
+      gameElements.filter(e => e.type === 'draggable').forEach(d => {
+        gameCtx.strokeStyle = '#000000';
+        gameCtx.lineWidth = 3;
+
+        if (d.r) {
+          gameCtx.fillStyle = d.color;
+          gameCtx.beginPath();
+          gameCtx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+          gameCtx.fill();
+          gameCtx.stroke();
+          
+          if (selectedJurusan === 'tsm') {
+            gameCtx.fillStyle = '#9ca3af';
+            gameCtx.beginPath();
+            gameCtx.arc(d.x, d.y, d.r * 0.4, 0, Math.PI * 2);
+            gameCtx.fill();
+          }
+        } else {
+          gameCtx.fillStyle = d.color;
+          gameCtx.fillRect(d.x - d.w/2, d.y - d.h/2, d.w, d.h);
+          gameCtx.strokeRect(d.x - d.w/2, d.y - d.h/2, d.w, d.h);
+
+          if (selectedJurusan === 'mp') {
+            gameCtx.fillStyle = '#475569';
+            gameCtx.fillRect(d.x - d.w/2 + 10, d.y - d.h/2 + 20, d.w - 20, 4);
+            gameCtx.fillRect(d.x - d.w/2 + 10, d.y - d.h/2 + 40, d.w - 20, 4);
+            gameCtx.fillRect(d.x - d.w/2 + 10, d.y - d.h/2 + 60, d.w - 30, 4);
+          }
+        }
+
+        if (d.icon) {
+          gameCtx.fillStyle = '#ffffff';
+          gameCtx.font = '24px Arial';
+          gameCtx.textAlign = 'center';
+          gameCtx.textBaseline = 'middle';
+          gameCtx.fillText(d.icon, d.x, d.y);
+        } else {
+          gameCtx.fillStyle = '#ffffff';
+          gameCtx.font = 'bold 10px Fredoka';
+          gameCtx.textAlign = 'center';
+          gameCtx.textBaseline = 'middle';
+          gameCtx.fillText(d.name, d.x, d.y);
+        }
+      });
+
+      requestAnimationFrame(renderGameLoop);
+    }
+
+    function getMousePos(e) {
+      const rect = gameCanvas.getBoundingClientRect();
+      const scaleX = gameCanvas.width / rect.width;
+      const scaleY = gameCanvas.height / rect.height;
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    function handleMouseDown(e) {
+      e.preventDefault();
+      const pos = getMousePos(e);
+
+      draggedElement = gameElements.find(el => {
+        if (el.type !== 'draggable' || el.matched) return false;
+        if (el.r) {
+          const dist = Math.hypot(pos.x - el.x, pos.y - el.y);
+          return dist <= el.r;
+        } else {
+          return pos.x >= el.x - el.w/2 && pos.x <= el.x + el.w/2 &&
+                 pos.y >= el.y - el.h/2 && pos.y <= el.y + el.h/2;
+        }
+      });
+
+      if (draggedElement) {
+        isDragging = true;
+      }
+    }
+
+    function handleMouseMove(e) {
+      if (!isDragging || !draggedElement) return;
+      e.preventDefault();
+      const pos = getMousePos(e);
+      draggedElement.x = pos.x;
+      draggedElement.y = pos.y;
+    }
+
+    function handleMouseUp(e) {
+      if (!isDragging || !draggedElement) return;
+      isDragging = false;
+
+      const distToTarget = Math.hypot(draggedElement.x - draggedElement.targetX, draggedElement.y - draggedElement.targetY);
+      
+      if (distToTarget < 50) {
+        AudioSynth.playTone(400, 'sine', 0.1, 0.05);
+        setTimeout(() => AudioSynth.playTone(600, 'sine', 0.1, 0.05), 80);
+        
+        draggedElement.x = draggedElement.targetX;
+        draggedElement.y = draggedElement.targetY;
+        draggedElement.matched = true;
+
+        const target = gameElements.find(el => el.type === 'target' && el.x === draggedElement.targetX && el.y === draggedElement.targetY);
+        if (target) target.matched = true;
+
+        gameScoreAccumulator += Math.round(100 / gameElements.filter(el => el.type === 'draggable').length);
+        if (gameScoreAccumulator > 100) gameScoreAccumulator = 100;
+        document.getElementById('game-score').innerText = `Skor: ${gameScoreAccumulator}`;
+
+        const allMatched = gameElements.filter(el => el.type === 'draggable').every(el => el.matched);
+        if (allMatched) {
+          finishMinigame();
+        }
+      } else {
+        AudioSynth.playError();
+        draggedElement.x = draggedElement.startX;
+        draggedElement.y = draggedElement.startY;
+      }
+
+      draggedElement = null;
+    }
+
+    function finishMinigame() {
+      clearInterval(gameTimerInterval);
+      AudioSynth.playSuccess();
+      
+      document.getElementById('minigame-final-score-val').innerText = `${gameScoreAccumulator} / 100`;
+      document.getElementById('minigame-complete-popup').classList.remove('hidden');
+    }
+
+    function finishMinigameSubmit() {
+      AudioSynth.playClick();
+      navigateToScreen('screen-lab-complete');
+      
+      const finalScoreLab = Math.round((quizScoreAccumulator * 0.6) + (gameScoreAccumulator * 0.4));
+      
+      // Save Score State in local object
+      currentUser.scores[selectedJurusan] = finalScoreLab;
+
+      // SQL Update: Write score to SQLite database
+      const updateStmt = db.prepare(`UPDATE peserta SET score_${selectedJurusan} = ? WHERE nisn = ?`);
+      updateStmt.run([finalScoreLab, currentUser.nisn]);
+      updateStmt.free();
+      saveDatabase();
+
+      // UI Celebration updates
+      document.getElementById('lab-complete-badge-area').innerText = JURUSAN_DETAILS[selectedJurusan].icon;
+      document.getElementById('lab-complete-title').innerText = "LAB " + selectedJurusan.toUpperCase() + " SELESAI!";
+      document.getElementById('lab-val-quiz').innerText = Math.round(quizScoreAccumulator) + " x 60%";
+      document.getElementById('lab-val-game').innerText = gameScoreAccumulator + " x 40%";
+      document.getElementById('lab-val-total').innerText = finalScoreLab + " Poin";
+
+      setTimeout(() => {
+        triggerAchievementToast("Langkah Pertama: Lab " + selectedJurusan.toUpperCase() + " Selesai!");
+      }, 500);
+      
+      updateHudBadges();
+    }
+
+    function triggerAchievementToast(text) {
+      AudioSynth.playAchievement();
+      const toast = document.getElementById('achievement-toast');
+      document.getElementById('achievement-text').innerText = text;
+      toast.classList.remove('opacity-0', 'translate-y-10');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-10');
+        toast.classList.remove('opacity-100', 'translate-y-0');
+      }, 4000);
+    }
+
+    function dismissLabCompleteAndReturn() {
+      AudioSynth.playClick();
+      navigateToScreen(null);
+      document.getElementById('game-hud').classList.remove('hidden');
+
+      if (phaserGame && phaserGame.scene.keys.MainWorldScene) {
+        phaserGame.scene.keys.MainWorldScene.markLabAsCompleted(selectedJurusan);
+      }
+    }
+
+    // --- LEADERBOARD & RANKINGS SYSTEM FROM SQLITE ---
+    function openLeaderboard() {
+      AudioSynth.playClick();
+      navigateToScreen('screen-leaderboard');
+      
+      const list = document.getElementById('leaderboard-list');
+      list.innerHTML = '';
+
+      // SQL Query: Fetch all players, calculate average from SQLite columns, and sort
+      const stmt = db.prepare(`
+        SELECT *, (
+          COALESCE(score_tkj, 0) + 
+          COALESCE(score_tkr, 0) + 
+          COALESCE(score_titl, 0) + 
+          COALESCE(score_tsm, 0) + 
+          COALESCE(score_mp, 0)
+        ) / 5 AS avg_score 
+        FROM peserta 
+        ORDER BY avg_score DESC
+      `);
+
+      let idx = 0;
+      while (stmt.step()) {
+        const p = stmt.getAsObject();
+        const item = document.createElement('div');
+        const isSelf = p.nisn === currentUser?.nisn;
+        
+        item.className = `flex items-center justify-between p-3 border-2 border-black rounded-2xl ${isSelf ? 'bg-yellow-100 border-yellow-500 shadow-md scale-102' : 'bg-slate-50'}`;
+        
+        let rankBadge = `<span class="font-bubble text-slate-700 w-6 text-center text-sm">${idx + 1}</span>`;
+        if (idx === 0) rankBadge = `<span class="text-xl">👑</span>`;
+        else if (idx === 1) rankBadge = `<span class="text-xl">🥈</span>`;
+        else if (idx === 2) rankBadge = `<span class="text-xl">🥉</span>`;
+
+        item.innerHTML = `
+          <div class="flex items-center gap-3">
+            ${rankBadge}
+            <div class="w-10 h-10 rounded-xl bg-slate-200 border border-slate-400 overflow-hidden flex items-center justify-center">
+              <span class="text-xl">${p.rec ? JURUSAN_DETAILS[p.rec].icon : '🧑‍🎓'}</span>
+            </div>
+            <div>
+              <h5 class="font-bold text-slate-800 text-sm leading-tight">${p.nama} ${isSelf ? '<span class="text-[9px] bg-yellow-400 text-slate-900 px-1 py-0.5 rounded font-extrabold">ANDA</span>' : ''}</h5>
+              <p class="text-[10px] text-slate-400 font-bold uppercase font-mono">${p.nomor_pendaftaran} • ${p.asal_sekolah || 'SMP Negeri'}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="text-right">
+              <p class="font-bubble text-sm text-slate-800">${p.avg_score} Poin</p>
+              <p class="text-[9px] text-slate-400 uppercase font-semibold leading-none">Rata-Rata</p>
+            </div>
+          </div>
+        `;
+        list.appendChild(item);
+        idx++;
+      }
+      stmt.free();
+    }
+
+    function closeLeaderboard() {
+      AudioSynth.playClick();
+      if (currentUser && currentUser.completed) {
+        navigateToScreen('screen-result');
+      } else {
+        navigateToScreen(null);
+        document.getElementById('game-hud').classList.remove('hidden');
+      }
+    }
+
+    // --- QUEST FINALIZATION & MULTI-VARIABLE REK RECOMMENDATION ALGORITHM ---
+    function finalizeQuest() {
+      AudioSynth.playSuccess();
+      
+      const sc = currentUser.scores;
+      const sortedKeys = ['tkj', 'tkr', 'titl', 'tsm', 'mp'].sort((a, b) => sc[b] - sc[a]);
+      
+      const recUtama = sortedKeys[0];
+      const recAlt = sortedKeys[1];
+
+      currentUser.rec = recUtama;
+      currentUser.completed = true;
+
+      // SQL Update: Finalize state and set recommendations in SQLite
+      const updateStmt = db.prepare("UPDATE peserta SET completed = 1, rec = ? WHERE nisn = ?");
+      updateStmt.run([recUtama, currentUser.nisn]);
+      updateStmt.free();
+      saveDatabase();
+
+      // Set display contents
+      document.getElementById('res-rec-icon').innerText = JURUSAN_DETAILS[recUtama].icon;
+      document.getElementById('res-rec-title').innerText = JURUSAN_DETAILS[recUtama].title.toUpperCase();
+      document.getElementById('res-rec-desc').innerText = "Berdasarkan hasil asesmen kuis teoritis dan mini-game praktik yang disimpan di database relasional SQLite, Anda memiliki kecocokan optimal di " + JURUSAN_DETAILS[recUtama].title + ". " + JURUSAN_DETAILS[recUtama].desc;
+
+      document.getElementById('res-alt-icon').innerText = JURUSAN_DETAILS[recAlt].icon;
+      document.getElementById('res-alt-title').innerText = JURUSAN_DETAILS[recAlt].title.toUpperCase();
+
+      navigateToScreen('screen-result');
+      
+      setTimeout(() => {
+        ['tkj', 'tkr', 'titl', 'tsm', 'mp'].forEach(jur => {
+          const score = sc[jur];
+          const chartKey = jur === 'tkr' ? 'kr' : jur === 'titl' ? 'itl' : jur === 'tsm' ? 'sm' : jur;
+          document.getElementById(`chart-val-${chartKey}`).innerText = score + "%";
+          document.getElementById(`chart-bar-${chartKey}`).style.width = score + "%";
+        });
+      }, 300);
+
+      triggerAchievementToast("🎓 Quest Berhasil Diselesaikan!");
+    }
+
+    // --- CERTIFICATE GENERATION & IMAGE DOWNLOAD (PNG) ---
+    function downloadCertificate() {
+      AudioSynth.playSuccess();
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 1200;
+      canvas.height = 850;
+      const ctx = canvas.getContext('2d');
+
+      // 1. Certificate Background
+      ctx.fillStyle = '#fbfbfb';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Ornate Border Frame
+      ctx.strokeStyle = '#a16207'; // Gold
+      ctx.lineWidth = 15;
+      ctx.strokeRect(30, 30, canvas.width - 60, canvas.height - 60);
+
+      ctx.strokeStyle = '#0284c7'; // Blue Accent
+      ctx.lineWidth = 3;
+      ctx.strokeRect(45, 45, canvas.width - 90, canvas.height - 90);
+
+      // Top Header SMKN 3 Tangerang
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 36px Times New Roman';
+      ctx.textAlign = 'center';
+      ctx.fillText('SMKN 3 KABUPATEN TANGERANG', canvas.width / 2, 130);
+      
+      ctx.font = 'italic italic 18px Times New Roman';
+      ctx.fillText('Alamat: Jl. Raya Mauk KM. 12, Sepatan, Kab. Tangerang, Banten', canvas.width / 2, 160);
+      
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#000000';
+      ctx.beginPath();
+      ctx.moveTo(100, 180);
+      ctx.lineTo(canvas.width - 100, 180);
+      ctx.stroke();
+
+      // Main Text
+      ctx.fillStyle = '#ff8000';
+      ctx.font = 'bold 44px Fredoka';
+      ctx.fillText('SERTIFIKAT MINAT BAKAT', canvas.width / 2, 260);
+
+      ctx.fillStyle = '#475569';
+      ctx.font = '18px Arial';
+      ctx.fillText('Diberikan secara sah berdasarkan sistem assesmen komparatif SQLite kepada:', canvas.width / 2, 310);
+
+      // Student Name
+      ctx.fillStyle = '#1e3a8a';
+      ctx.font = 'bold 42px Fredoka';
+      ctx.fillText(currentUser.nama.toUpperCase(), canvas.width / 2, 380);
+
+      ctx.fillStyle = '#475569';
+      ctx.font = 'bold 18px Courier New';
+      ctx.fillText(`NISN: ${currentUser.nisn}  |  Nomor PPDB: ${currentUser.nomor_pendaftaran}`, canvas.width / 2, 425);
+
+      // Recommendation box
+      ctx.fillStyle = '#f8fafc';
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 2;
+      ctx.fillRect(150, 470, canvas.width - 300, 150);
+      ctx.strokeRect(150, 470, canvas.width - 300, 150);
+
+      ctx.fillStyle = '#475569';
+      ctx.font = 'bold 16px Arial';
+      ctx.fillText('DIREKOMENDASIKAN PADA PROGRAM KEAHLIAN UTAMA:', canvas.width / 2, 510);
+
+      const recTitle = JURUSAN_DETAILS[currentUser.rec].title.toUpperCase();
+      ctx.fillStyle = '#15803d';
+      ctx.font = 'bold 28px Fredoka';
+      ctx.fillText(`${JURUSAN_DETAILS[currentUser.rec].icon} ${recTitle}`, canvas.width / 2, 560);
+
+      ctx.fillStyle = '#475569';
+      ctx.font = 'italic 14px Arial';
+      ctx.fillText(`Tingkat Kecocokan: TKJ: ${currentUser.scores.tkj}% | TKR: ${currentUser.scores.tkr}% | TITL: ${currentUser.scores.titl}% | TSM: ${currentUser.scores.tsm}% | MP: ${currentUser.scores.mp}%`, canvas.width / 2, 600);
+
+      // Signatures
+      ctx.fillStyle = '#1e293b';
+      ctx.font = '14px Arial';
+      ctx.fillText('Kepala SMKN 3 Kab. Tangerang', 280, 720);
+      ctx.font = 'bold 16px Arial';
+      ctx.fillText('Drs. H. SURYALAKSANA, M.Pd.', 280, 790);
+      
+      ctx.font = '14px Arial';
+      ctx.fillText('Ketua Pelaksana PPDB 2026', canvas.width - 280, 720);
+      ctx.font = 'bold 16px Arial';
+      ctx.fillText('NURHADI, S.Kom., M.T.', canvas.width - 280, 790);
+
+      const link = document.createElement('a');
+      link.download = `Sertifikat_VTQ_${currentUser.nama.replace(/\s+/g, '_')}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+
+    // --- INTERACTIVE SQL CONSOLE & GURU/ADMIN DASHBOARD ---
+    function openAdminPanel() {
+      AudioSynth.playClick();
+      navigateToScreen('screen-admin');
+      populateAdminTable();
+      executeSQLDirectly("SELECT * FROM peserta ORDER BY id DESC;");
+    }
+
+    function closeAdminPanel() {
+      AudioSynth.playClick();
+      navigateToScreen(null);
+      if (currentUser && currentUser.completed) {
+        navigateToScreen('screen-result');
+      } else if (currentUser) {
+        document.getElementById('game-hud').classList.remove('hidden');
+      } else {
+        navigateToScreen('screen-login');
+      }
+    }
+
+    function populateAdminTable() {
+      const tbody = document.getElementById('admin-table-body');
+      tbody.innerHTML = '';
+
+      const searchVal = document.getElementById('admin-search').value.toLowerCase();
+
+      // Query SQLite for participants matching search text
+      const stmt = db.prepare("SELECT * FROM peserta WHERE LOWER(nama) LIKE :search OR nisn LIKE :search");
+      stmt.bind({ ':search': `%${searchVal}%` });
+
+      let totalCount = 0;
+      while (stmt.step()) {
+        const p = stmt.getAsObject();
+        totalCount++;
+
+        const row = document.createElement('tr');
+        row.className = "border-b border-slate-200 hover:bg-slate-50";
+
+        const recBadge = p.completed === 1 ? `<span class="bg-teal-100 text-teal-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">${p.rec.toUpperCase()}</span>` : `<span class="text-slate-400 italic">Berjalan...</span>`;
+        const scoresSum = (p.score_tkj || 0) + (p.score_tkr || 0) + (p.score_titl || 0) + (p.score_tsm || 0) + (p.score_mp || 0);
+        const avg = p.completed === 1 ? Math.round(scoresSum / 5) : '-';
+
+        row.innerHTML = `
+          <td class="p-3">
+            <p class="font-bold text-slate-800">${p.nama}</p>
+            <p class="text-[10px] text-slate-400 font-mono">NISN: ${p.nisn}</p>
+          </td>
+          <td class="p-3 font-mono font-bold text-slate-600">${p.nomor_pendaftaran}</td>
+          <td class="p-3 text-center font-bold">${p.score_tkj !== null ? p.score_tkj : '-'}</td>
+          <td class="p-3 text-center font-bold">${p.score_tkr !== null ? p.score_tkr : '-'}</td>
+          <td class="p-3 text-center font-bold">${p.score_titl !== null ? p.score_titl : '-'}</td>
+          <td class="p-3 text-center font-bold">${p.score_tsm !== null ? p.score_tsm : '-'}</td>
+          <td class="p-3 text-center font-bold">${p.score_mp !== null ? p.score_mp : '-'}</td>
+          <td class="p-3 text-center font-bubble text-slate-800">${avg}</td>
+          <td class="p-3 text-center">${recBadge}</td>
+        `;
+        tbody.appendChild(row);
+      }
+      stmt.free();
+
+      // SQLite count stats
+      const totalStmt = db.prepare("SELECT COUNT(*) AS count FROM peserta");
+      totalStmt.step();
+      document.getElementById('admin-stat-total').innerText = totalStmt.getAsObject().count;
+      totalStmt.free();
+    }
+
+    function filterAdminTable() {
+      populateAdminTable();
+    }
+
+    function executeAdminSQL() {
+      const sqlQuery = document.getElementById('sql-input-cmd').value.trim();
+      if (!sqlQuery) return;
+      executeSQLDirectly(sqlQuery);
+    }
+
+    function executeSQLDirectly(sqlQuery) {
+      const consoleOutput = document.getElementById('console-output');
+      
+      const queryDiv = document.createElement('div');
+      queryDiv.className = "text-yellow-400 border-t border-slate-800 pt-1 mt-1 font-bold";
+      queryDiv.innerText = `sqlite> ${sqlQuery}`;
+      consoleOutput.appendChild(queryDiv);
+
+      try {
+        const results = db.exec(sqlQuery);
+        if (results.length === 0) {
+          const emptyDiv = document.createElement('div');
+          emptyDiv.className = "text-slate-400 text-[11px] italic";
+          emptyDiv.innerText = "Kueri berhasil dijalankan. Tidak ada data baris yang dikembalikan (atau tabel kosong).";
+          consoleOutput.appendChild(emptyDiv);
+        } else {
+          results.forEach(res => {
+            // Render SQLite results in a mini visual table
+            const table = document.createElement('table');
+            table.className = "w-full text-left text-[10px] text-slate-300 border border-slate-700 my-1 font-mono";
+            
+            // Header
+            const thead = document.createElement('thead');
+            thead.className = "bg-slate-800 text-teal-300";
+            const htr = document.createElement('tr');
+            res.columns.forEach(col => {
+              const th = document.createElement('th');
+              th.className = "p-1 border border-slate-700";
+              th.innerText = col;
+              htr.appendChild(th);
+            });
+            thead.appendChild(htr);
+            table.appendChild(thead);
+
+            // Body
+            const tbody = document.createElement('tbody');
+            res.values.forEach(row => {
+              const rtr = document.createElement('tr');
+              rtr.className = "border-b border-slate-800";
+              row.forEach(val => {
+                const td = document.createElement('td');
+                td.className = "p-1 border border-slate-700 truncate max-w-[120px]";
+                td.innerText = val !== null ? val : 'NULL';
+                rtr.appendChild(td);
+              });
+              tbody.appendChild(rtr);
+            });
+            table.appendChild(tbody);
+            consoleOutput.appendChild(table);
+          });
+        }
+        // Save database state in case the query mutated tables (INSERT/UPDATE/DELETE)
+        saveDatabase();
+        populateAdminTable();
+      } catch (err) {
+        const errDiv = document.createElement('div');
+        errDiv.className = "text-red-400 text-[11px] font-bold";
+        errDiv.innerText = `Error: ${err.message}`;
+        consoleOutput.appendChild(errDiv);
+      }
+
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+
+    function clearConsole() {
+      document.getElementById('console-output').innerHTML = '<div class="text-slate-500">Ketik kueri SQL di bawah, tekan Enter atau Jalankan Kueri.</div>';
+    }
+
+    function exportDataCSV() {
+      AudioSynth.playSuccess();
+      
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Nomor Pendaftaran,NISN,Nama,Asal Sekolah,Skor TKJ,Skor TKR,Skor TITL,Skor TSM,Skor MP,Rata-Rata,Rekomendasi Utama\n";
+
+      const stmt = db.prepare("SELECT * FROM peserta");
+      while (stmt.step()) {
+        const p = stmt.getAsObject();
+        const scoresSum = (p.score_tkj || 0) + (p.score_tkr || 0) + (p.score_titl || 0) + (p.score_tsm || 0) + (p.score_mp || 0);
+        const avg = p.completed === 1 ? Math.round(scoresSum / 5) : 0;
+        csvContent += `"${p.nomor_pendaftaran}","${p.nisn}","${p.nama}","${p.asal_sekolah || ''}",${p.score_tkj || 0},${p.score_tkr || 0},${p.score_titl || 0},${p.score_tsm || 0},${p.score_mp || 0},${avg},"${p.rec || ''}"\n`;
+      }
+      stmt.free();
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Rekap_Nilai_PPDB_SQLite_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function seedInitialData() {
+      AudioSynth.playTone(300, 'sine', 0.2, 0.1);
+      localStorage.removeItem('vtq_sqlite_db_v3');
+      db = new SQL.Database();
+      createTablesAndSeed();
+      saveDatabase();
+      populateAdminTable();
+      clearConsole();
+      executeSQLDirectly("SELECT * FROM peserta;");
+    }
+
+    // --- PHASER 3 GAME WORLD IMPLEMENTATION ---
+    let phaserGame = null;
+
+    function initPhaserGame() {
+      if (phaserGame) return;
+
+      const config = {
+        type: Phaser.AUTO,
+        parent: 'game-container',
+        width: window.innerWidth,
+        height: window.innerHeight,
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: 0 },
+            debug: false
+          }
+        },
+        scene: [MainWorldScene]
+      };
+
+      phaserGame = new Phaser.Game(config);
+
+      window.addEventListener('resize', () => {
+        if (phaserGame) phaserGame.scale.resize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    class MainWorldScene extends Phaser.Scene {
+      constructor() {
+        super({ key: 'MainWorldScene' });
+      }
+
+      preload() {}
+
+      create() {
+        this.cameras.main.setBounds(0, 0, 1600, 1200);
+        this.physics.world.setBounds(0, 0, 1600, 1200);
+
+        // Ground grid
+        const bg = this.add.graphics();
+        bg.fillStyle(0x4ade80, 1);
+        bg.fillRect(0, 0, 1600, 1200);
+
+        bg.fillStyle(0xcbd5e1, 1);
+        bg.fillRect(100, 500, 1400, 200);
+        bg.fillRect(700, 100, 200, 1000);
+
+        // Fountain in center
+        bg.fillStyle(0x0284c7, 1);
+        bg.fillCircle(800, 600, 80);
+        bg.lineStyle(10, 0xffffff, 1);
+        bg.strokeCircle(800, 600, 80);
+
+        // Arah aktif dari tombol sentuh D-Pad mobile
+        this.dpadDirection = { x: 0, y: 0 };
+
+        // 1. BUAT KARAKTER PEMAIN TERLEBIH DAHULU (Penting agar tidak undefined)
+        this.createPlayerCharacter();
+
+        // 2. DAFTARKAN GEDUNG LAB & KOORDINASI OVERLAP KOLISION
+        this.labs = [
+          { key: 'tkj', name: "LAB TKJ (KOMPUTER)", x: 250, y: 300, color: 0x3b82f6, emoji: "💻" },
+          { key: 'tkr', name: "LAB TKR (MESIN OTOMOTIF)", x: 1350, y: 300, color: 0x6b7280, emoji: "🔧" },
+          { key: 'titl', name: "LAB TITL (TENAGA LISTRIK)", x: 800, y: 220, color: 0xf59e0b, emoji: "⚡" },
+          { key: 'tsm', name: "LAB TSM (BENGKEL MOTOR)", x: 250, y: 900, color: 0xf97316, emoji: "🏍️" },
+          { key: 'mp', name: "LAB MP (PERKANTORAN)", x: 1350, y: 900, color: 0x14b8a6, emoji: "📋" }
+        ];
+
+        this.buildingObjects = {};
+        this.labs.forEach(lab => {
+          const shadow = this.add.graphics();
+          shadow.fillStyle(0x000000, 0.15);
+          shadow.fillEllipse(lab.x, lab.y + 60, 120, 40);
+
+          const walls = this.add.graphics();
+          walls.fillStyle(lab.color, 1);
+          walls.fillRect(lab.x - 70, lab.y - 50, 140, 100);
+          walls.lineStyle(4, 0x000000, 1);
+          walls.strokeRect(lab.x - 70, lab.y - 50, 140, 100);
+
+          const roof = this.add.graphics();
+          roof.fillStyle(0xef4444, 1);
+          roof.beginPath();
+          roof.moveTo(lab.x - 85, lab.y - 50);
+          roof.lineTo(lab.x, lab.y - 110);
+          roof.lineTo(lab.x + 85, lab.y - 50);
+          roof.closePath();
+          roof.fill();
+          roof.strokePath();
+
+          const door = this.add.graphics();
+          door.fillStyle(0x1e293b, 1);
+          door.fillRect(lab.x - 20, lab.y + 10, 40, 40);
+          door.strokeRect(lab.x - 20, lab.y + 10, 40, 40);
+
+          const zone = this.add.zone(lab.x, lab.y + 30, 120, 120);
+          this.physics.add.existing(zone, true);
+          this.physics.add.overlap(this.player, zone, () => {
+            this.handlePlayerEnterLab(lab.key);
+          }, null, this);
+
+          const label = this.add.text(lab.x, lab.y - 140, `${lab.emoji} ${lab.name}`, {
+            fontFamily: 'Fredoka, sans-serif',
+            fontSize: '12px',
+            color: '#000000',
+            backgroundColor: '#ffffff',
+            padding: { x: 8, y: 4 },
+            stroke: '#000000',
+            strokeThickness: 3,
+            borderRadius: 6
+          }).setOrigin(0.5);
+
+          this.buildingObjects[lab.key] = { walls, label };
+        });
+
+        // 3. DAFTARKAN GURU NPC
+        this.npcs = [];
+        this.labs.forEach(lab => {
+          const npc = this.add.container(lab.x + 50, lab.y + 40);
+          
+          const body = this.add.graphics();
+          body.fillStyle(0x1e3a8a, 1);
+          body.fillRect(-12, -10, 24, 30);
+          body.lineStyle(2, 0x000000, 1);
+          body.strokeRect(-12, -10, 24, 30);
+
+          body.fillStyle(currentUser.avatar.skin, 1);
+          body.fillRect(-10, -32, 20, 22);
+          body.strokeRect(-10, -32, 20, 22);
+
+          body.fillStyle(0x000000, 1);
+          body.fillRect(-6, -24, 3, 3);
+          body.fillRect(3, -24, 3, 3);
+
+          npc.add(body);
+          this.physics.add.existing(npc, true);
+
+          const bubble = this.add.text(lab.x + 50, lab.y - 15, "TANYA GURU", {
+            fontFamily: 'Fredoka, sans-serif',
+            fontSize: '9px',
+            color: '#ffffff',
+            backgroundColor: '#ff8000',
+            padding: { x: 5, y: 3 },
+            stroke: '#000000',
+            strokeThickness: 2
+          }).setOrigin(0.5);
+
+          npc.setSize(40, 60);
+          npc.setInteractive();
+          npc.on('pointerdown', () => {
+            AudioSynth.playClick();
+            triggerNpcInteraction(lab.key);
+          });
+        });
+
+        this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+        this.cameras.main.setZoom(1.1);
+
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.wasd = this.input.keyboard.addKeys({
+          up: Phaser.Input.Keyboard.KeyCodes.W,
+          left: Phaser.Input.Keyboard.KeyCodes.A,
+          down: Phaser.Input.Keyboard.KeyCodes.S,
+          right: Phaser.Input.Keyboard.KeyCodes.D
+        });
+
+        this.setupTouchControls();
+
+        this.labs.forEach(lab => {
+          if (currentUser.scores[lab.key] !== null) {
+            this.markLabAsCompleted(lab.key);
+          }
+        });
+      }
+
+      createPlayerCharacter() {
+        this.player = this.add.container(800, 600);
+        this.player.setSize(30, 45);
+        this.physics.add.existing(this.player);
+        this.player.body.setCollideWorldBounds(true);
+
+        const config = currentUser.avatar;
+
+        this.playerGraphics = this.add.graphics();
+        this.playerGraphics.lineStyle(2, 0x000000, 1);
+
+        // Legs
+        this.playerGraphics.fillStyle(Phaser.Display.Color.HexStringToColor(config.pants).color, 1);
+        this.playerGraphics.fillRect(-10, 8, 8, 16);
+        this.playerGraphics.strokeRect(-10, 8, 8, 16);
+        this.playerGraphics.fillRect(2, 8, 8, 16);
+        this.playerGraphics.strokeRect(2, 8, 8, 16);
+
+        // Torso
+        this.playerGraphics.fillStyle(Phaser.Display.Color.HexStringToColor(config.shirt).color, 1);
+        this.playerGraphics.fillRect(-14, -20, 28, 28);
+        this.playerGraphics.strokeRect(-14, -20, 28, 28);
+
+        // Head
+        this.playerGraphics.fillStyle(Phaser.Display.Color.HexStringToColor(config.skin).color, 1);
+        this.playerGraphics.fillRect(-11, -38, 22, 18);
+        this.playerGraphics.strokeRect(-11, -38, 22, 18);
+
+        // Eyes
+        this.playerGraphics.fillStyle(0x000000, 1);
+        this.playerGraphics.fillRect(-7, -31, 3, 3);
+        this.playerGraphics.fillRect(4, -31, 3, 3);
+
+        // Mouth
+        this.playerGraphics.beginPath();
+        this.playerGraphics.moveTo(-3, -24);
+        this.playerGraphics.lineTo(3, -24);
+        this.playerGraphics.stroke();
+
+        // Hat
+        if (config.accessories.includes('topi')) {
+          this.playerGraphics.fillStyle(0xa16207, 1);
+          this.playerGraphics.fillRect(-17, -42, 34, 4);
+          this.playerGraphics.strokeRect(-17, -42, 34, 4);
+          this.playerGraphics.fillRect(-10, -52, 20, 10);
+          this.playerGraphics.strokeRect(-10, -52, 20, 10);
+        }
+
+        // Glasses
+        if (config.accessories.includes('kacamata')) {
+          this.playerGraphics.fillStyle(0x111827, 1);
+          this.playerGraphics.fillRect(-9, -33, 8, 5);
+          this.playerGraphics.strokeRect(-9, -33, 8, 5);
+          this.playerGraphics.fillRect(1, -33, 8, 5);
+          this.playerGraphics.strokeRect(1, -33, 8, 5);
+        }
+
+        this.player.add(this.playerGraphics);
+
+        this.playerNameText = this.add.text(0, -65, currentUser.nama, {
+          fontFamily: 'Fredoka, sans-serif',
+          fontSize: '10px',
+          color: '#ffffff',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          padding: { x: 5, y: 2 }
+        }).setOrigin(0.5);
+        this.player.add(this.playerNameText);
+
+        this.playerBody = this.player;
+      }
+
+      setupTouchControls() {
+        // Integrasi state penahan arah gerakan kontinu (mencegah tumpang tindih frame di update)
+        const setupButton = (id, direction, val) => {
+          const btn = document.getElementById(id);
+          if (!btn) return;
+
+          const startPress = (e) => {
+            e.preventDefault();
+            this.dpadDirection[direction] = val;
+          };
+          const stopPress = (e) => {
+            e.preventDefault();
+            this.dpadDirection[direction] = 0;
+          };
+
+          btn.addEventListener('mousedown', startPress);
+          btn.addEventListener('mouseup', stopPress);
+          btn.addEventListener('mouseleave', stopPress);
+          btn.addEventListener('touchstart', startPress);
+          btn.addEventListener('touchend', stopPress);
+          btn.addEventListener('touchcancel', stopPress);
+        };
+
+        setupButton('btn-dpad-up', 'y', -1);
+        setupButton('btn-dpad-down', 'y', 1);
+        setupButton('btn-dpad-left', 'x', -1);
+        setupButton('btn-dpad-right', 'x', 1);
+      }
+
+      update() {
+        const speed = 200;
+        let vx = 0;
+        let vy = 0;
+
+        // Cek input keyboard ATAU D-Pad mobile kontinu
+        if (this.cursors.left.isDown || this.wasd.left.isDown || this.dpadDirection.x < 0) {
+          vx = -speed;
+        } else if (this.cursors.right.isDown || this.wasd.right.isDown || this.dpadDirection.x > 0) {
+          vx = speed;
+        }
+
+        if (this.cursors.up.isDown || this.wasd.up.isDown || this.dpadDirection.y < 0) {
+          vy = -speed;
+        } else if (this.cursors.down.isDown || this.wasd.down.isDown || this.dpadDirection.y > 1 || this.dpadDirection.y > 0) {
+          vy = speed;
+        }
+
+        // Set kecepatan fisik
+        this.player.body.setVelocity(vx, vy);
+
+        // Efek langkah kaki sintetis jika bergerak
+        if (vx !== 0 || vy !== 0) {
+          this.isWalking = true;
+          if (this.time.now % 18 === 0) {
+            AudioSynth.playFootstep();
+          }
+        } else {
+          this.isWalking = false;
+        }
+      }
+
+      handlePlayerEnterLab(jurusan) {
+        this.player.setPosition(800, 600);
+        this.player.body.setVelocity(0,0);
+        this.dpadDirection = { x: 0, y: 0 }; // Reset dpad state saat berteleportasi ke tengah
+        AudioSynth.playClick();
+        triggerNpcInteraction(jurusan);
+      }
+
+      markLabAsCompleted(jurusan) {
+        if (!this.buildingObjects || !this.buildingObjects[jurusan]) return;
+        
+        const data = this.labs.find(l => l.key === jurusan);
+        const ref = this.buildingObjects[jurusan];
+        
+        ref.walls.clear();
+        ref.walls.fillStyle(0x22c55e, 1);
+        ref.walls.fillRect(data.x - 70, data.y - 50, 140, 100);
+        ref.walls.lineStyle(6, 0xffffff, 1);
+        ref.walls.strokeRect(data.x - 70, data.y - 50, 140, 100);
+
+        ref.label.setBackgroundColor('#22c55e');
+        ref.label.setColor('#ffffff');
+        ref.label.setText(`✅ JURUSAN ${jurusan.toUpperCase()}`);
+      }
+    }
+  </script>
+</body>
+</html>
